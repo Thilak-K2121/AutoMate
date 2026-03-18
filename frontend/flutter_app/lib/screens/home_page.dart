@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'create_ride_page.dart';
+import 'notifications_page.dart';
 import 'metro_ride_details_page.dart';
 import 'profile_page.dart';
 
@@ -114,40 +115,53 @@ class _HomePageState extends State<HomePage> {
                               ],
                             ),
                           ),
-                          Stack(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
+                          // REPLACE the notification Stack with this:
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const NotificationsPage(),
                                 ),
-                                child: const Icon(
-                                  Icons.notifications_none,
-                                  size: 22,
-                                  color: Color(0xFF374151),
-                                ),
-                              ),
-                              Positioned(
-                                right: 6,
-                                top: 6,
-                                child: Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
+                              );
+                            },
+                            child: Stack(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.notifications_none,
+                                    size: 22,
+                                    color: Color(0xFF374151),
                                   ),
                                 ),
-                              ),
-                            ],
+                                // The Red Notification Dot
+                                Positioned(
+                                  right: 6,
+                                  top: 6,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(width: 12),
                           GestureDetector(
