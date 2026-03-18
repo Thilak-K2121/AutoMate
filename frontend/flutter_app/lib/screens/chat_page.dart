@@ -76,10 +76,15 @@ class _ChatPageState extends State<ChatPage> {
     });
 
     // Listen for new messages from the backend
+    // REPLACE THIS BLOCK inside _connectSocket() in chat_page.dart
     _socket.on('newMessage', (data) {
       if (mounted) {
         setState(() {
-          _messages.add(data);
+          // Prevent drawing the message twice if we already added it locally
+          final messageExists = _messages.any((msg) => msg['id'] == data['id']);
+          if (!messageExists) {
+            _messages.add(data);
+          }
         });
         _scrollToBottom();
       }
@@ -88,6 +93,7 @@ class _ChatPageState extends State<ChatPage> {
     _socket.onDisconnect((_) => debugPrint('Disconnected from Socket.io'));
   }
 
+  // REPLACE the entire _sendMessage function in chat_page.dart
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
@@ -95,13 +101,38 @@ class _ChatPageState extends State<ChatPage> {
     _messageController.clear(); // Clear UI immediately for better UX
 
     try {
-      // Send to backend via REST API (which will then broadcast via Socket.io)
-      await ApiService.postRequest('/messages/send', {
+      // 1. Send to backend via REST API
+      final response = await ApiService.postRequest('/messages/send', {
         'rideId': widget.rideId,
         'message': text,
       });
+
+      // 2. Instantly draw our own message without waiting for the socket echo!
+      if (response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        final newMessage =
+            responseData['data']; // Your backend sends the payload in 'data'
+
+        if (mounted) {
+          setState(() {
+            // Double check it wasn't miraculously added by the socket already
+            final messageExists = _messages.any(
+              (msg) => msg['id'] == newMessage['id'],
+            );
+            if (!messageExists) {
+              _messages.add(newMessage);
+            }
+          });
+          _scrollToBottom();
+        }
+      }
     } catch (e) {
       debugPrint("Error sending message: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to send message.")),
+        );
+      }
     }
   }
 

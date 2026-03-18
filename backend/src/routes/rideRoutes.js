@@ -10,6 +10,7 @@ router.post('/create', rideController.createRide);
 router.get('/nearby', rideController.getNearbyRides);
 router.post('/join', rideController.joinRide);
 router.post('/leave', rideController.leaveRide);
+router.post('/end', rideController.endRide);
 router.get('/:id', rideController.getRideDetails);
 
 module.exports = router;

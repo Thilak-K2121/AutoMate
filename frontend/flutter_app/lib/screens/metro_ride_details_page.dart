@@ -18,31 +18,29 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
   Map<String, dynamic>? _rideData;
   List<dynamic> _participants = [];
   String _driverPhone = "";
+  String _currentUserId = ""; // NEW: Track who is looking at the app
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchRideDetails();
+    _fetchData();
   }
 
-  Future<void> _makePhoneCall(String phoneNumber) async {
-    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
-
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri);
-    } else {
-      debugPrint('Could not launch $launchUri');
-    }
-  }
-
-  Future<void> _fetchRideDetails() async {
+  // NEW: Combined fetch to get the user ID first, then the ride details
+  Future<void> _fetchData() async {
     try {
-      final response = await ApiService.getRequest('/rides/${widget.rideId}');
+      // 1. Get current user ID
+      final userRes = await ApiService.getRequest('/auth/me');
+      if (userRes.statusCode == 200) {
+        final userData = jsonDecode(userRes.body);
+        _currentUserId = userData['user']['id'];
+      }
 
+      // 2. Get Ride Details
+      final response = await ApiService.getRequest('/rides/${widget.rideId}');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         if (mounted) {
           setState(() {
             _rideData = data['ride'];
@@ -69,8 +67,158 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
     }
   }
 
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
+    } else {
+      debugPrint('Could not launch $launchUri');
+    }
+  }
+
+  // NEW: The End Ride Logic
+  // REPLACE this entire function in metro_ride_details_page.dart
+  Future<void> _handleEndRide() async {
+    // 1. Show a confirmation dialog
+    final bool? confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("End Ride"),
+        content: const Text("Are you sure you want to end this ride?"),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, false), // Fixed to onPressed
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true), // Fixed to onPressed
+            child: const Text("End Ride", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final res = await ApiService.postRequest('/rides/end', {
+        'rideId': widget.rideId,
+      });
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Ride ended successfully! 🏁")),
+          );
+          Navigator.pop(context, true); // Pop back to home page
+        }
+      } else {
+        final errorData = jsonDecode(res.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorData['message'] ?? "Failed to end ride"),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Network error ending ride. Is backend running?"),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  //handling the join ride
+  // --- ADD THESE TWO FUNCTIONS ---
+  Future<void> _handleJoinRide() async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiService.postRequest('/rides/join', {
+        'rideId': widget.rideId,
+      });
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Successfully joined the ride! 🎉")),
+          );
+          _fetchData(); // Refresh the page to show the user in the participants list!
+        }
+      } else {
+        final errorData = jsonDecode(res.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorData['message'] ?? "Failed to join")),
+          );
+          setState(() => _isLoading = false);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Network error joining ride.")),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleLeaveRide() async {
+    final bool? confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Leave Ride"),
+        content: const Text(
+          "Are you sure you want to leave? Your seat will be given to someone else.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Leave", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiService.postRequest('/rides/leave', {
+        'rideId': widget.rideId,
+      });
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("You have left the ride.")),
+          );
+          _fetchData(); // Refresh to update seats and remove user
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // NEW: Check if the current user is the host
+    final bool isHost = _currentUserId == _rideData?['creator_id'];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FA),
       bottomNavigationBar: _bottomNavBar(),
@@ -228,92 +376,102 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                           const SizedBox(height: 12),
 
                           ..._participants.map((p) {
-                            final isHost = p['id'] == _rideData?['creator_id'];
+                            final bool isThisUserHost =
+                                p['id'] == _rideData?['creator_id'];
 
                             return _memberTile(
                               name: p['name'],
-                              role: isHost ? "Host" : "Member",
+                              role: isThisUserHost ? "Host" : "Member",
                               seat: "1 seat",
-                              host: isHost,
-                              avatar: "assets/images/avatar1.png",
+                              host: isThisUserHost,
                             );
                           }).toList(),
 
                           const SizedBox(height: 30),
 
-                          /// Buttons
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            ChatPage(rideId: widget.rideId),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF34A853),
-                                      borderRadius: BorderRadius.circular(28),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        "Chat",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 16,
+                          /// Buttons Area
+                          /// Buttons Area
+                          Builder(
+                            builder: (context) {
+                              // Determine the user's exact relationship to this ride
+                              final bool isHost = _currentUserId == _rideData?['creator_id'];
+                              final bool isParticipant = _participants.any((p) => p['id'] == _currentUserId);
+                              final bool isFull = (_rideData?['seats_available'] ?? 0) <= 0;
+
+                              // 1. NON-PARTICIPANT VIEW: Only show the "Join" button (Full width)
+                              if (!isHost && !isParticipant) {
+                                return GestureDetector(
+                                  onTap: isFull ? null : _handleJoinRide,
+                                  child: _actionButton(
+                                    isFull ? "Ride Full" : "Join Ride", 
+                                    isFull ? Colors.grey : const Color(0xFF34A853)
+                                  ),
+                                );
+                              }
+
+                              // 2. HOST & PARTICIPANT VIEW: Show the unlocked control panel
+                              return Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      // LEFT BUTTON: Chat (Always visible for members)
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => ChatPage(rideId: widget.rideId)),
+                                          ),
+                                          child: _actionButton("Chat", const Color(0xFF34A853)),
                                         ),
                                       ),
-                                    ),
+                                      const SizedBox(width: 14),
+
+                                      // RIGHT BUTTON: End Ride (Host) OR Call Host (Participant)
+                                      Expanded(
+                                        child: isHost
+                                          ? GestureDetector(
+                                              onTap: _handleEndRide,
+                                              child: _actionButton("End Ride", Colors.red.shade500),
+                                            )
+                                          : GestureDetector( // Must be a participant here
+                                              onTap: () => _driverPhone.isNotEmpty ? _makePhoneCall(_driverPhone) : null,
+                                              child: _actionButton(
+                                                "Call Host", 
+                                                _driverPhone.isNotEmpty ? const Color(0xFF2F80ED) : Colors.grey
+                                              ),
+                                            ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    if (_driverPhone.isNotEmpty) {
-                                      await _makePhoneCall(_driverPhone);
-                                    } else {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "No phone number provided 📵",
+                                  
+                                  // 3. BOTTOM BUTTON (Leave Ride - only for participants who aren't the host)
+                                  if (isParticipant && !isHost) ...[
+                                    const SizedBox(height: 14),
+                                    GestureDetector(
+                                      onTap: _handleLeaveRide,
+                                      child: Container(
+                                        width: double.infinity,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.red.shade400, width: 1.5),
+                                          borderRadius: BorderRadius.circular(28),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            "Leave Ride",
+                                            style: TextStyle(
+                                              color: Colors.red.shade500,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16,
+                                            ),
                                           ),
                                         ),
-                                      );
-                                    }
-                                  },
-                                  child: Container(
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: _driverPhone.isNotEmpty
-                                          ? const Color(0xFF34A853)
-                                          : Colors.grey,
-                                      borderRadius: BorderRadius.circular(28),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        "Call",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 16,
-                                        ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                                  ],
+                                ],
+                              );
+                            }
                           ),
 
                           const SizedBox(height: 40),
@@ -341,12 +499,32 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
     );
   }
 
+  // Helper for drawing the colorful buttons
+  Widget _actionButton(String text, Color color) {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Center(
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _memberTile({
     required String name,
     required String role,
     required String seat,
     required bool host,
-    required String avatar,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -379,6 +557,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                         style: TextStyle(
                           fontSize: 10,
                           color: Color(0xFF34A853),
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
