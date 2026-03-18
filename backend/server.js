@@ -10,6 +10,9 @@ require('dotenv').config();
 // Initialize Express App
 const app = express();
 const server = http.createServer(app);
+// Add this line where your other routes are in server.js/app.js
+const notificationRoutes = require('./src/routes/notificationRoutes');
+app.use('/api/notifications', notificationRoutes);
 
 // Initialize Socket.io
 const io = new Server(server, {

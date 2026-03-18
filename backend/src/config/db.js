@@ -20,6 +20,22 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
+// 🚨 FORCE CREATE THE TABLE IF DOCKER IGNORED IT
+// 🚨 FORCE CREATE THE TABLE IF DOCKER IGNORED IT
+// 🚨 FORCE CREATE THE TABLE IF DOCKER IGNORED IT
+pool.query(`
+  CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE, 
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      icon_type VARCHAR(50) DEFAULT 'person',
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`).then(() => console.log("✅ Notifications table verified/created successfully!"))
+  .catch(err => console.error("Database table creation error:", err));
+
 module.exports = {
   query: (text, params) => pool.query(text, params),
 };

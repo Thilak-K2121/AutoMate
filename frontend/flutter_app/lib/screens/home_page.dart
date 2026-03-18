@@ -321,7 +321,7 @@ class _HomePageState extends State<HomePage> {
                             title: ride['destination'],
                             people: "${ride['seats_available']} seats left",
                             gate: ride['meeting_point'],
-                            price: "₹ 15 / seat",
+                            price: "TBD",
                             time: "Active",
                             buttonColor: isMetro
                                 ? const Color(0xFF34A853)
@@ -417,13 +417,17 @@ class _HomePageState extends State<HomePage> {
     required bool isMyRide, // NEW: Added parameter
   }) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => MetroRideDetailsPage(rideId: id),
           ),
         );
+
+        if (result == true) {
+          _fetchDashboardData(); // 🔥 THIS refreshes the list
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),

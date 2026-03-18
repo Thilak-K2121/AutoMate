@@ -162,6 +162,26 @@ const rideController = {
         'INSERT INTO ride_participants (ride_id, user_id) VALUES ($1, $2)',
         [rideId, userId]
       );
+      // 👇 NEW: CREATE THE NOTIFICATION FOR THE HOST
+      // 1. Fetch the user who just joined to get their name
+      const joiningUser = await db.query('SELECT name FROM users WHERE id = $1', [userId]);
+      const passengerName = joiningUser.rows[0]?.name?.split(' ')[0] || 'Someone';
+
+      // 2. Insert the notification for the Ride Creator
+      await db.query(
+        `INSERT INTO notifications (user_id, title, message, icon_type) 
+         VALUES ($1, $2, $3, $4)`,
+        [ride.creator_id, 'New Passenger! 🚗', `${passengerName} just joined your ride to ${ride.destination}.`, 'person_add']
+      );
+      // 👆 END NOTIFICATION LOGIC
+      socketManager.getIO()
+  .to(`user_${ride.creator_id}`)
+  .emit('newNotification', {
+    title: 'New Passenger! 🚗',
+    message: `${passengerName} just joined your ride to ${ride.destination}.`,
+    icon_type: 'person_add'
+  });
+      
 
       const newSeats = ride.seats_available - 1;
       const newStatus = newSeats === 0 ? 'full' : 'active';
