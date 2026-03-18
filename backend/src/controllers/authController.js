@@ -6,35 +6,34 @@ const ALLOWED_DOMAIN = '@bmsce.ac.in';
 
 const authController = {
   // POST /api/auth/register
+  // REPLACE the register function in authController.js
   register: async (req, res) => {
     try {
-      const { name, email, password, phone } = req.body;
+      // NEW: Extract gender from the request body
+      const { name, email, password, phone, gender } = req.body;
 
-      // 1. Enforce college email and password presence
-      if (!email || !email.endsWith(ALLOWED_DOMAIN)) {
-        return res.status(403).json({ message: `Only ${ALLOWED_DOMAIN} emails are allowed.` });
+      if (!email || !email.endsWith('@bmsce.ac.in')) {
+        return res.status(403).json({ message: 'Only @bmsce.ac.in emails are allowed.' });
       }
       if (!password || password.length < 6) {
         return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
       }
 
-      // 2. Check if user already exists
       const userCheck = await db.query('SELECT * FROM users WHERE email = $1', [email]);
       if (userCheck.rows.length > 0) {
         return res.status(400).json({ message: 'User already exists. Please log in.' });
       }
 
-      // 3. Hash the password
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      // 4. Insert new user into database
+      // NEW: Insert gender into the database, default to 'Unspecified' if missing
+      const userGender = gender || 'Unspecified';
       const newUser = await db.query(
-        'INSERT INTO users (name, email, password, phone) VALUES ($1, $2, $3, $4) RETURNING id, name, email, rating',
-        [name, email, hashedPassword, phone]
+        'INSERT INTO users (name, email, password, phone, gender) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, rating, gender',
+        [name, email, hashedPassword, phone, userGender]
       );
 
-      // 5. Generate JWT Token
       const token = jwt.sign(
         { id: newUser.rows[0].id },
         process.env.JWT_SECRET || 'fallback_super_secret_key',
@@ -89,7 +88,7 @@ const authController = {
   // GET /api/auth/me (Remains the same)
   getMe: async (req, res) => {
     try {
-      const result = await db.query('SELECT id, name, email, phone, rating FROM users WHERE id = $1', [req.user.id]);
+      const result = await db.query('SELECT id, name, email, phone, rating,gender FROM users WHERE id = $1', [req.user.id]);
       if (result.rows.length === 0) return res.status(404).json({ message: 'User not found.' });
       res.status(200).json({ user: result.rows[0] });
     } catch (error) {

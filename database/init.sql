@@ -9,6 +9,7 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL, -- NEW FIELD
     phone VARCHAR(20),
     rating NUMERIC(2,1) DEFAULT 5.0,
+    gender VARCHAR(20) DEFAULT 'Unspecified',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -19,6 +20,7 @@ CREATE TABLE rides (
     meeting_point VARCHAR(255) NOT NULL,
     creator_id UUID REFERENCES users(id) ON DELETE CASCADE,
     seats_total INTEGER NOT NULL,
+    female_only BOOLEAN DEFAULT FALSE,
     seats_available INTEGER NOT NULL,
     status VARCHAR(50) DEFAULT 'active', -- 'active', 'full', 'completed', 'cancelled'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

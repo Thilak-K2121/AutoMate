@@ -1,35 +1,53 @@
 const db = require('../config/db');
-const socketManager = require('../sockets/socketManager'); // <-- NEW
+const socketManager = require('../sockets/socketManager');
 
 const rideController = {
-  // POST /api/rides/create
+
+  // ✅ CREATE RIDE
   createRide: async (req, res) => {
     try {
-      const { destination, meeting_point, seats_total } = req.body;
-      const creator_id = req.user.id; // From verifyToken middleware
+      const { destination, meeting_point, seats_total, female_only } = req.body;
+      const creator_id = req.user.id;
 
-      // A user creating a ride takes up 1 seat automatically
       const seats_available = seats_total - 1;
 
-      // Start SQL Transaction
+      // ✅ safer boolean parsing
+      const isFemaleOnly =
+          female_only === true ||
+          female_only === 'true' ||
+          female_only === 'on' ||
+          female_only === 1;
+      
+      console.log({
+  incoming_female_only: female_only,
+  parsed: isFemaleOnly,
+  type: typeof female_only
+});
+
       await db.query('BEGIN');
 
-      // 1. Insert the ride
       const rideResult = await db.query(
-        `INSERT INTO rides (destination, meeting_point, creator_id, seats_total, seats_available) 
-         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [destination, meeting_point, creator_id, seats_total, seats_available]
+        `INSERT INTO rides 
+         (destination, meeting_point, creator_id, seats_total, seats_available, female_only) 
+         VALUES ($1, $2, $3, $4, $5, $6) 
+         RETURNING *`,
+        [destination, meeting_point, creator_id, seats_total, seats_available, isFemaleOnly]
       );
+
       const newRide = rideResult.rows[0];
 
-      // 2. Add creator as a participant
       await db.query(
         `INSERT INTO ride_participants (ride_id, user_id) VALUES ($1, $2)`,
         [newRide.id, creator_id]
       );
 
       await db.query('COMMIT');
-      res.status(201).json({ message: 'Ride created successfully', ride: newRide });
+
+      res.status(201).json({
+        message: 'Ride created successfully',
+        ride: newRide
+      });
+
     } catch (error) {
       await db.query('ROLLBACK');
       console.error(error);
@@ -37,25 +55,45 @@ const rideController = {
     }
   },
 
-  // GET /api/rides/nearby
+  // ✅ GET NEARBY RIDES (FIXED 🔥)
   getNearbyRides: async (req, res) => {
     try {
-      // Fetch all active rides and join with the users table to get the creator's name
-      const result = await db.query(
-        `SELECT r.*, u.name as creator_name, u.rating 
-         FROM rides r 
-         JOIN users u ON r.creator_id = u.id 
-         WHERE r.status = 'active' AND r.seats_available > 0
-         ORDER BY r.created_at DESC`
-      );
+      const currentUserId = req.user.id;
+
+     const result = await db.query(
+  `SELECT DISTINCT r.*, u.name as creator_name, u.rating 
+   FROM rides r 
+   JOIN users u ON r.creator_id = u.id 
+   LEFT JOIN ride_participants rp 
+     ON r.id = rp.ride_id AND rp.user_id = $1
+   CROSS JOIN (
+     SELECT COALESCE(LOWER(TRIM(gender)), '') as gender 
+     FROM users WHERE id = $1
+   ) as cu
+   WHERE r.status IN ('active', 'full')
+   AND (
+     (
+       r.status = 'active'
+       AND r.seats_available > 0
+       AND (
+         r.female_only = false
+         OR cu.gender = 'female'
+       )
+     )
+     OR rp.user_id IS NOT NULL
+   )
+   ORDER BY r.created_at DESC`,
+  [currentUserId]
+);
       res.status(200).json({ rides: result.rows });
+
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server error fetching nearby rides' });
     }
   },
 
-  // POST /api/rides/join
+  // ✅ JOIN RIDE
   joinRide: async (req, res) => {
     try {
       const { rideId } = req.body;
@@ -63,44 +101,90 @@ const rideController = {
 
       await db.query('BEGIN');
 
-      // 1. Check if ride exists and has seats
-      const rideCheck = await db.query('SELECT seats_available, status FROM rides WHERE id = $1 FOR UPDATE', [rideId]);
-      if (rideCheck.rows.length === 0) throw new Error('Ride not found');
-      if (rideCheck.rows[0].status !== 'active') throw new Error('Ride is no longer active');
-      if (rideCheck.rows[0].seats_available <= 0) throw new Error('Ride is full');
-
-      // 2. Check if user is already in this ride
-      const participantCheck = await db.query('SELECT * FROM ride_participants WHERE ride_id = $1 AND user_id = $2', [rideId, userId]);
-      if (participantCheck.rows.length > 0) throw new Error('You have already joined this ride');
-
-      // 3. Add user to participants
-      await db.query('INSERT INTO ride_participants (ride_id, user_id) VALUES ($1, $2)', [rideId, userId]);
-
-      // 4. Update available seats
-      const updateRide = await db.query(
-        'UPDATE rides SET seats_available = seats_available - 1 WHERE id = $1 RETURNING *',
+      const rideCheck = await db.query(
+        'SELECT * FROM rides WHERE id = $1 FOR UPDATE',
         [rideId]
       );
 
-      // 5. If seats hit 0, mark as full
-      if (updateRide.rows[0].seats_available === 0) {
-        await db.query("UPDATE rides SET status = 'full' WHERE id = $1", [rideId]);
+      if (rideCheck.rows.length === 0) {
+        await db.query('ROLLBACK');
+        return res.status(404).json({ message: 'Ride not found' });
       }
 
-      await db.query('COMMIT');
-      socketManager.getIO().to(`ride_${rideId}`).emit('rideJoined', {
-        message: 'A new user joined the ride!',
-        userId: userId,
-        seats_available: updateRide.rows[0].seats_available
+      const ride = rideCheck.rows[0];
+
+      // ✅ ADD HERE
+      console.log({
+        female_only: ride.female_only,
+        type: typeof ride.female_only
       });
-      res.status(200).json({ message: 'Joined ride successfully' });
+
+      const isRideFemaleOnly = ride.female_only === true;
+
+      if (isRideFemaleOnly) {
+        const userCheck = await db.query(
+          'SELECT gender FROM users WHERE id = $1',
+          [userId]
+        );
+
+        const userGender = (userCheck.rows[0]?.gender || '')
+              .trim()
+              .toLowerCase();
+
+        if (userGender !== 'female') {
+          await db.query('ROLLBACK');
+          return res.status(403).json({
+            message: 'Access Denied: Female-only ride.'
+          });
+        }
+      }
+
+      const participantCheck = await db.query(
+        'SELECT 1 FROM ride_participants WHERE ride_id = $1 AND user_id = $2',
+        [rideId, userId]
+      );
+
+      if (participantCheck.rows.length > 0) {
+        await db.query('ROLLBACK');
+        return res.status(400).json({
+          message: 'You have already joined this ride.'
+        });
+      }
+
+      if (ride.seats_available <= 0) {
+        await db.query('ROLLBACK');
+        return res.status(400).json({
+          message: 'Ride is full.'
+        });
+      }
+
+      await db.query(
+        'INSERT INTO ride_participants (ride_id, user_id) VALUES ($1, $2)',
+        [rideId, userId]
+      );
+
+      const newSeats = ride.seats_available - 1;
+      const newStatus = newSeats === 0 ? 'full' : 'active';
+
+      await db.query(
+        'UPDATE rides SET seats_available = $1, status = $2 WHERE id = $3',
+        [newSeats, newStatus, rideId]
+      );
+
+      await db.query('COMMIT');
+
+      res.status(200).json({
+        message: 'Successfully joined the ride!'
+      });
+
     } catch (error) {
       await db.query('ROLLBACK');
-      res.status(400).json({ message: error.message || 'Server error joining ride' });
+      console.error(error);
+      res.status(500).json({ message: 'Server error joining ride' });
     }
   },
 
-  // POST /api/rides/leave
+  // ✅ LEAVE RIDE
   leaveRide: async (req, res) => {
     try {
       const { rideId } = req.body;
@@ -108,37 +192,44 @@ const rideController = {
 
       await db.query('BEGIN');
 
-      // 1. Remove user from participants
       const deleteResult = await db.query(
         'DELETE FROM ride_participants WHERE ride_id = $1 AND user_id = $2 RETURNING *',
         [rideId, userId]
       );
-      if (deleteResult.rows.length === 0) throw new Error('You are not a participant in this ride');
 
-      // 2. Add the seat back and ensure status is active
+      if (deleteResult.rows.length === 0) {
+        throw new Error('Not a participant');
+      }
+
       await db.query(
         "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1",
         [rideId]
       );
 
       await db.query('COMMIT');
-      socketManager.getIO().to(`ride_${rideId}`).emit('rideLeft', {
-        message: 'A user left the ride.',
-        userId: userId
-      });
+
+      socketManager.getIO()
+        .to(`ride_${rideId}`)
+        .emit('rideLeft', {
+          message: 'User left ride',
+          userId
+        });
+
       res.status(200).json({ message: 'Left ride successfully' });
+
     } catch (error) {
       await db.query('ROLLBACK');
-      res.status(400).json({ message: error.message || 'Server error leaving ride' });
+      res.status(400).json({
+        message: error.message || 'Error leaving ride'
+      });
     }
   },
 
-  // GET /api/rides/:id
+  // ✅ GET RIDE DETAILS
   getRideDetails: async (req, res) => {
     try {
       const { id } = req.params;
 
-      // 1. Get ride info (NEW: Added u.phone as creator_phone)
       const rideResult = await db.query(
         `SELECT r.*, u.name as creator_name, u.phone as creator_phone, u.rating 
          FROM rides r 
@@ -146,14 +237,17 @@ const rideController = {
          WHERE r.id = $1`,
         [id]
       );
-      if (rideResult.rows.length === 0) return res.status(404).json({ message: 'Ride not found' });
 
-      // 2. Get all participants for this ride
+      if (rideResult.rows.length === 0) {
+        return res.status(404).json({ message: 'Ride not found' });
+      }
+
       const participantsResult = await db.query(
         `SELECT u.id, u.name, u.rating, rp.joined_at 
          FROM ride_participants rp 
          JOIN users u ON rp.user_id = u.id 
-         WHERE rp.ride_id = $1 ORDER BY rp.joined_at ASC`,
+         WHERE rp.ride_id = $1 
+         ORDER BY rp.joined_at ASC`,
         [id]
       );
 
@@ -161,38 +255,45 @@ const rideController = {
         ride: rideResult.rows[0],
         participants: participantsResult.rows
       });
+
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server error fetching ride details' });
     }
   },
-  // POST /api/rides/end
+
+  // ✅ END RIDE
   endRide: async (req, res) => {
     try {
       const { rideId } = req.body;
-      const userId = req.user.id; // The person requesting to end the ride
+      const userId = req.user.id;
 
-      // Update the ride status to 'completed' ONLY if the requester is the creator
       const result = await db.query(
         "UPDATE rides SET status = 'completed' WHERE id = $1 AND creator_id = $2 RETURNING *",
         [rideId, userId]
       );
 
       if (result.rows.length === 0) {
-        return res.status(403).json({ message: 'Not authorized to end this ride or ride not found' });
+        return res.status(403).json({
+          message: 'Not authorized or ride not found'
+        });
       }
 
-      // Optional: Emit a socket event so passengers know the ride ended
-      socketManager.getIO().to(`ride_${rideId}`).emit('rideEnded', {
-        message: 'The host has ended this ride.',
+      socketManager.getIO()
+        .to(`ride_${rideId}`)
+        .emit('rideEnded', {
+          message: 'Ride ended'
+        });
+
+      res.status(200).json({
+        message: 'Ride ended successfully'
       });
 
-      res.status(200).json({ message: 'Ride ended successfully' });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server error ending ride' });
     }
-  },
+  }
 };
 
 module.exports = rideController;

@@ -138,6 +138,7 @@ class _SignInPageState extends State<SignInPage> {
                         ),
                       ],
                     ),
+      
                     child: Column(
                       children: [
                         /// Email input

@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
@@ -16,6 +15,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  String _selectedGender = 'Male'; // Default value
+  final List<String> _genders = ['Male', 'Female', 'Other'];
 
   bool _isLoading = false;
 
@@ -26,9 +27,9 @@ class _RegisterPageState extends State<RegisterPage> {
     final password = _passwordController.text.trim();
 
     if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
       return;
     }
 
@@ -47,6 +48,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'email': email,
         'phone': phone,
         'password': password,
+        'gender': _selectedGender, // <-- NEW: Passing gender to backend
       });
 
       if (response.statusCode == 201) {
@@ -63,13 +65,15 @@ class _RegisterPageState extends State<RegisterPage> {
       } else {
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorData['message'] ?? "Registration failed")),
+          SnackBar(
+            content: Text(errorData['message'] ?? "Registration failed"),
+          ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Network error")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Network error")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -135,10 +139,7 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Column(
                 children: [
                   /// Logo
-                  Image.asset(
-                    "assets/images/auto_icon.png",
-                    width: 120,
-                  ),
+                  Image.asset("assets/images/auto_icon.png", width: 120),
 
                   const SizedBox(height: 20),
 
@@ -155,10 +156,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                   const Text(
                     "Join AutoMate today",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF6B7280),
-                    ),
+                    style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
                   ),
 
                   const SizedBox(height: 30),
@@ -179,17 +177,86 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     child: Column(
                       children: [
-                        _inputField(_nameController, "e.g. Alex Johnson", Icons.person),
+                        _inputField(
+                          _nameController,
+                          "e.g. Alex Johnson",
+                          Icons.person,
+                        ),
                         const SizedBox(height: 16),
 
-                        _inputField(_emailController, "e.g. student@bmsce.ac.in", Icons.mail_outline),
+                        _inputField(
+                          _emailController,
+                          "e.g. student@bmsce.ac.in",
+                          Icons.mail_outline,
+                        ),
                         const SizedBox(height: 16),
 
-                        _inputField(_phoneController, "e.g. 9876543210", Icons.phone_outlined),
+                        _inputField(
+                          _phoneController,
+                          "e.g. 9876543210",
+                          Icons.phone_outlined,
+                        ),
                         const SizedBox(height: 16),
 
-                        _inputField(_passwordController, "Enter password", Icons.lock_outline, obscure: true),
+                        _inputField(
+                          _passwordController,
+                          "Enter password",
+                          Icons.lock_outline,
+                          obscure: true,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // 👇 NEW: The Gender Dropdown UI
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF2F4F7),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.wc,
+                                size: 20,
+                                color: Color(0xFF9CA3AF),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _selectedGender,
+                                    isExpanded: true,
+                                    icon: const Icon(
+                                      Icons.keyboard_arrow_down,
+                                      color: Color(0xFF9CA3AF),
+                                    ),
+                                    items: _genders.map((String gender) {
+                                      return DropdownMenuItem<String>(
+                                        value: gender,
+                                        child: Text(
+                                          gender,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (String? newValue) {
+                                      if (newValue != null) {
+                                        setState(
+                                          () => _selectedGender = newValue,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 24),
+                        // 👆 END NEW GENDER DROPDOWN
 
                         /// Register button
                         GestureDetector(
@@ -205,7 +272,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                             child: Center(
                               child: _isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
                                   : const Text(
                                       "Register",
                                       style: TextStyle(
@@ -223,12 +292,25 @@ class _RegisterPageState extends State<RegisterPage> {
                         /// Divider
                         Row(
                           children: [
-                            Expanded(child: Container(height: 1, color: const Color(0xFFE5E7EB))),
+                            Expanded(
+                              child: Container(
+                                height: 1,
+                                color: const Color(0xFFE5E7EB),
+                              ),
+                            ),
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text("or", style: TextStyle(color: Color(0xFF9CA3AF))),
+                              child: Text(
+                                "or",
+                                style: TextStyle(color: Color(0xFF9CA3AF)),
+                              ),
                             ),
-                            Expanded(child: Container(height: 1, color: const Color(0xFFE5E7EB))),
+                            Expanded(
+                              child: Container(
+                                height: 1,
+                                color: const Color(0xFFE5E7EB),
+                              ),
+                            ),
                           ],
                         ),
 
@@ -238,7 +320,9 @@ class _RegisterPageState extends State<RegisterPage> {
                         GestureDetector(
                           onTap: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Google Sign Up coming soon 🚀")),
+                              const SnackBar(
+                                content: Text("Google Sign Up coming soon 🚀"),
+                              ),
                             );
                           },
                           child: Container(
@@ -246,7 +330,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFE5E7EB)),
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
+                              ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,

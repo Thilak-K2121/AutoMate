@@ -282,6 +282,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           /// Meeting point + status
+                          /// Meeting point + status
                           Container(
                             padding: const EdgeInsets.all(18),
                             decoration: _cardDecoration(),
@@ -320,7 +321,10 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                                     ),
                                   ),
                                 ),
+
                                 const Divider(height: 26),
+
+                                /// STATUS ROW
                                 Row(
                                   children: [
                                     const Icon(
@@ -357,6 +361,53 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                                     ),
                                   ],
                                 ),
+
+                                /// 🔥 NEW: FEMALE ONLY BADGE
+                                if (_rideData?['female_only'] == true ||
+                                    _rideData?['female_only'] == 'true' ||
+                                    _rideData?['female_only'] == 1) ...[
+                                  const Divider(height: 26),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.security,
+                                        color: Colors.pink,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      const Text(
+                                        "Security:",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.pink.shade50,
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.pink.shade200,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          "FEMALE ONLY",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.pink,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -394,17 +445,23 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                           Builder(
                             builder: (context) {
                               // Determine the user's exact relationship to this ride
-                              final bool isHost = _currentUserId == _rideData?['creator_id'];
-                              final bool isParticipant = _participants.any((p) => p['id'] == _currentUserId);
-                              final bool isFull = (_rideData?['seats_available'] ?? 0) <= 0;
+                              final bool isHost =
+                                  _currentUserId == _rideData?['creator_id'];
+                              final bool isParticipant = _participants.any(
+                                (p) => p['id'] == _currentUserId,
+                              );
+                              final bool isFull =
+                                  (_rideData?['seats_available'] ?? 0) <= 0;
 
                               // 1. NON-PARTICIPANT VIEW: Only show the "Join" button (Full width)
                               if (!isHost && !isParticipant) {
                                 return GestureDetector(
                                   onTap: isFull ? null : _handleJoinRide,
                                   child: _actionButton(
-                                    isFull ? "Ride Full" : "Join Ride", 
-                                    isFull ? Colors.grey : const Color(0xFF34A853)
+                                    isFull ? "Ride Full" : "Join Ride",
+                                    isFull
+                                        ? Colors.grey
+                                        : const Color(0xFF34A853),
                                   ),
                                 );
                               }
@@ -419,9 +476,16 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                                         child: GestureDetector(
                                           onTap: () => Navigator.push(
                                             context,
-                                            MaterialPageRoute(builder: (context) => ChatPage(rideId: widget.rideId)),
+                                            MaterialPageRoute(
+                                              builder: (context) => ChatPage(
+                                                rideId: widget.rideId,
+                                              ),
+                                            ),
                                           ),
-                                          child: _actionButton("Chat", const Color(0xFF34A853)),
+                                          child: _actionButton(
+                                            "Chat",
+                                            const Color(0xFF34A853),
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(width: 14),
@@ -429,21 +493,32 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                                       // RIGHT BUTTON: End Ride (Host) OR Call Host (Participant)
                                       Expanded(
                                         child: isHost
-                                          ? GestureDetector(
-                                              onTap: _handleEndRide,
-                                              child: _actionButton("End Ride", Colors.red.shade500),
-                                            )
-                                          : GestureDetector( // Must be a participant here
-                                              onTap: () => _driverPhone.isNotEmpty ? _makePhoneCall(_driverPhone) : null,
-                                              child: _actionButton(
-                                                "Call Host", 
-                                                _driverPhone.isNotEmpty ? const Color(0xFF2F80ED) : Colors.grey
+                                            ? GestureDetector(
+                                                onTap: _handleEndRide,
+                                                child: _actionButton(
+                                                  "End Ride",
+                                                  Colors.red.shade500,
+                                                ),
+                                              )
+                                            : GestureDetector(
+                                                // Must be a participant here
+                                                onTap: () =>
+                                                    _driverPhone.isNotEmpty
+                                                    ? _makePhoneCall(
+                                                        _driverPhone,
+                                                      )
+                                                    : null,
+                                                child: _actionButton(
+                                                  "Call Host",
+                                                  _driverPhone.isNotEmpty
+                                                      ? const Color(0xFF2F80ED)
+                                                      : Colors.grey,
+                                                ),
                                               ),
-                                            ),
                                       ),
                                     ],
                                   ),
-                                  
+
                                   // 3. BOTTOM BUTTON (Leave Ride - only for participants who aren't the host)
                                   if (isParticipant && !isHost) ...[
                                     const SizedBox(height: 14),
@@ -453,8 +528,13 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                                         width: double.infinity,
                                         height: 50,
                                         decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.red.shade400, width: 1.5),
-                                          borderRadius: BorderRadius.circular(28),
+                                          border: Border.all(
+                                            color: Colors.red.shade400,
+                                            width: 1.5,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            28,
+                                          ),
                                         ),
                                         child: Center(
                                           child: Text(
@@ -471,7 +551,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                                   ],
                                 ],
                               );
-                            }
+                            },
                           ),
 
                           const SizedBox(height: 40),

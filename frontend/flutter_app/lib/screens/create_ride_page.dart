@@ -12,9 +12,33 @@ class CreateRidePage extends StatefulWidget {
 class _CreateRidePageState extends State<CreateRidePage> {
   final TextEditingController _destinationController = TextEditingController();
   final TextEditingController _meetingPointController = TextEditingController();
-  
+
   int _seats = 1;
   bool _isLoading = false;
+  bool _isFemaleOnly = false;
+  String _userGender = "Unspecified";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserGender();
+  }
+
+  Future<void> _fetchUserGender() async {
+    try {
+      final res = await ApiService.getRequest('/auth/me');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (mounted) {
+          setState(() {
+            _userGender = data['user']['gender'] ?? "Unspecified";
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Could not fetch gender");
+    }
+  }
 
   Future<void> _handleCreateRide() async {
     final destination = _destinationController.text.trim();
@@ -22,7 +46,9 @@ class _CreateRidePageState extends State<CreateRidePage> {
 
     if (destination.isEmpty || meetingPoint.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in destination and meeting point")),
+        const SnackBar(
+          content: Text("Please fill in destination and meeting point"),
+        ),
       );
       return;
     }
@@ -34,6 +60,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
         'destination': destination,
         'meeting_point': meetingPoint,
         'seats_total': _seats,
+        'female_only': _isFemaleOnly,
       });
 
       if (response.statusCode == 201) {
@@ -47,14 +74,18 @@ class _CreateRidePageState extends State<CreateRidePage> {
         final errorData = jsonDecode(response.body);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorData['message'] ?? "Failed to create ride")),
+            SnackBar(
+              content: Text(errorData['message'] ?? "Failed to create ride"),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Network error. Could not connect to backend.")),
+          const SnackBar(
+            content: Text("Network error. Could not connect to backend."),
+          ),
         );
       }
     } finally {
@@ -114,12 +145,12 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                 color: Colors.black.withOpacity(.05),
                                 blurRadius: 6,
                                 offset: const Offset(0, 3),
-                              )
+                              ),
                             ],
                           ),
                           child: const Icon(Icons.close, size: 18),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -145,7 +176,11 @@ class _CreateRidePageState extends State<CreateRidePage> {
                   child: Image.asset(
                     "assets/images/auto_icon.png",
                     width: 140,
-                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.directions_car, size: 80, color: Colors.green),
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.directions_car,
+                      size: 80,
+                      color: Colors.green,
+                    ),
                   ),
                 ),
 
@@ -205,7 +240,10 @@ class _CreateRidePageState extends State<CreateRidePage> {
                         const SizedBox(height: 8),
 
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(18),
@@ -214,12 +252,15 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                 color: Colors.black.withOpacity(.04),
                                 blurRadius: 10,
                                 offset: const Offset(0, 6),
-                              )
+                              ),
                             ],
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.person_add_alt_1, color: Color(0xFF34A853)),
+                              const Icon(
+                                Icons.person_add_alt_1,
+                                color: Color(0xFF34A853),
+                              ),
                               const SizedBox(width: 10),
                               Text(
                                 "$_seats Seat${_seats > 1 ? 's' : ''}",
@@ -238,27 +279,67 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                   children: [
                                     IconButton(
                                       onPressed: () {
-                                        if (_seats > 1) setState(() => _seats--);
+                                        if (_seats > 1)
+                                          setState(() => _seats--);
                                       },
                                       icon: const Icon(Icons.remove, size: 18),
                                     ),
                                     Text(
                                       "$_seats",
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                     IconButton(
                                       onPressed: () {
-                                        if (_seats < 4) setState(() => _seats++);
+                                        if (_seats < 4)
+                                          setState(() => _seats++);
                                       },
                                       icon: const Icon(Icons.add, size: 18),
                                     ),
                                   ],
                                 ),
-                              )
+                              ),
                             ],
                           ),
                         ),
-
+                        // 👇 NEW: Conditionally show Female-Only toggle
+                        if (_userGender == 'Female') ...[
+                          const SizedBox(height: 18),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.pink.shade50,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: Colors.pink.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.female, color: Colors.pink),
+                                const SizedBox(width: 10),
+                                const Expanded(
+                                  child: Text(
+                                    "Female-Only Ride",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.pink,
+                                    ),
+                                  ),
+                                ),
+                                Switch(
+                                  value: _isFemaleOnly,
+                                  onChanged: (val) =>
+                                      setState(() => _isFemaleOnly = val),
+                                  activeColor: Colors.pink,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        // 👆 END FEMALE ONLY TOGGLE
                         const SizedBox(height: 30),
 
                         /// Create Ride Button
@@ -269,23 +350,27 @@ class _CreateRidePageState extends State<CreateRidePage> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(30),
                               gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFF34C759),
-                                  Color(0xFF28A745),
-                                ],
+                                colors: [Color(0xFF34C759), Color(0xFF28A745)],
                               ),
                             ),
                             child: Center(
-                              child: _isLoading 
-                                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text(
-                                    "Create Ride",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w600,
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text(
+                                      "Create Ride",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
                             ),
                           ),
                         ),
@@ -294,10 +379,10 @@ class _CreateRidePageState extends State<CreateRidePage> {
                       ],
                     ),
                   ),
-                )
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -309,7 +394,10 @@ class _CreateRidePageState extends State<CreateRidePage> {
     required TextEditingController controller,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // Adjusted padding for TextField
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 4,
+      ), // Adjusted padding for TextField
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -318,7 +406,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
             color: Colors.black.withOpacity(.04),
             blurRadius: 10,
             offset: const Offset(0, 6),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -331,12 +419,12 @@ class _CreateRidePageState extends State<CreateRidePage> {
               decoration: InputDecoration(
                 hintText: hintText,
                 border: InputBorder.none,
-                hintStyle: const TextStyle(fontWeight: FontWeight.w400, color: Colors.black38),
+                hintStyle: const TextStyle(
+                  fontWeight: FontWeight.w400,
+                  color: Colors.black38,
+                ),
               ),
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
         ],
