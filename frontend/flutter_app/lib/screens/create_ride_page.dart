@@ -7,10 +7,10 @@ class CreateRidePage extends StatefulWidget {
   final String? initialMeetingPoint;
 
   const CreateRidePage({
-    Key? key,
+    super.key,
     this.initialDestination,
     this.initialMeetingPoint,
-  }) : super(key: key);
+  });
 
   @override
   State<CreateRidePage> createState() => _CreateRidePageState();
@@ -326,7 +326,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                   color: Colors.pink.shade200),
                             ),
                             child: SwitchListTile(
-                              activeColor: Colors.pink,
+                              activeThumbColor: Colors.pink,
                               title: const Text(
                                 "Female-Only Ride",
                                 style: TextStyle(

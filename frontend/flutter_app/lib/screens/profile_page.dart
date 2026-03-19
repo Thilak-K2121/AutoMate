@@ -16,11 +16,15 @@ class _ProfilePageState extends State<ProfilePage> {
   String _userName = "Loading...";
   String _userEmail = "Loading...";
   bool _isLoading = true;
+  int _ridesTaken = 0;
+  int _ridesHosted = 0;
+  bool _isLoadingStats = true;
 
   @override
   void initState() {
     super.initState();
     _fetchProfileData();
+    _fetchProfileStats(); // NEW
   }
 
   Future<void> _fetchProfileData() async {
@@ -41,6 +45,25 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       debugPrint("Error fetching profile: $e");
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchProfileStats() async {
+    try {
+      final response = await ApiService.getRequest('/rides/stats');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _ridesHosted = data['ridesHosted'] ?? 0;
+            _ridesTaken = data['ridesTaken'] ?? 0;
+            _isLoadingStats = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching stats: $e");
+      if (mounted) setState(() => _isLoadingStats = false);
     }
   }
 
@@ -80,138 +103,141 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: const Color(0xFFF3F6F9),
-    bottomNavigationBar: _bottomNavBar(),
-    body: SafeArea(
-      child: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF34A853)),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 10),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3F6F9),
+      bottomNavigationBar: _bottomNavBar(),
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFF34A853)),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 10),
 
-                  /// Header
-                  Row(
-                    children: const [
-                      Text(
-                        "Profile",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1F2937),
+                    /// Header
+                    Row(
+                      children: const [
+                        Text(
+                          "Profile",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1F2937),
+                          ),
                         ),
-                      ),
-                      Spacer(),
-                      // Icon(
-                      //   Icons.settings_outlined,
-                      //   size: 22,
-                      //   color: Color(0xFF6B7280),
-                      // ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  /// Avatar
-                  const CircleAvatar(
-                    radius: 46,
-                    backgroundColor: Color(0xFFDCE7EE),
-                    child: Icon(
-                      Icons.person,
-                      size: 50,
-                      color: Color(0xFF6B7280),
+                        Spacer(),
+                        // Icon(
+                        //   Icons.settings_outlined,
+                        //   size: 22,
+                        //   color: Color(0xFF6B7280),
+                        // ),
+                      ],
                     ),
-                  ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 30),
 
-                  /// Name
-                  Text(
-                    _userName,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  /// Email
-                  Text(
-                    _userEmail,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF6B7280),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  /// Stats Row
-                  Row(
-                    children: const [
-                      Expanded(
-                        child: _StatCard(
-                          title: "12",
-                          subtitle: "Rides Taken",
-                        ),
+                    /// Avatar
+                    const CircleAvatar(
+                      radius: 46,
+                      backgroundColor: Color(0xFFDCE7EE),
+                      child: Icon(
+                        Icons.person,
+                        size: 50,
+                        color: Color(0xFF6B7280),
                       ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(
-                          title: "5",
-                          subtitle: "Rides Hosted",
-                        ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    /// Name
+                    Text(
+                      _userName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
                       ),
-                    ],
-                  ),
+                      textAlign: TextAlign.center,
+                    ),
 
-                  const SizedBox(height: 26),
+                    const SizedBox(height: 4),
 
-                  /// Menu Options
-                  _menuTile(
-                    icon: Icons.history,
-                    title: "Ride History",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RideHistoryPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  _menuTile(
-                    icon: Icons.star_border,
-                    title: "Saved Rides",
-                  ),
-                  _menuTile(
-                    icon: Icons.help_outline,
-                    title: "Help & Support",
-                  ),
-                  _menuTile(
-                    icon: Icons.logout,
-                    title: "Logout",
-                    red: true,
-                    onTap: _handleLogout,
-                  ),
+                    /// Email
+                    Text(
+                      _userEmail,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6B7280),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
 
-                  const SizedBox(height: 100), // space for bottom nav
-                ],
+                    const SizedBox(height: 28),
+
+                    /// Stats Row
+                    _isLoadingStats
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF34A853),
+                            ),
+                          )
+                        : Row(
+                            children: [
+                              Expanded(
+                                child: _StatCard(
+                                  title: _ridesTaken.toString(),
+                                  subtitle: "Rides Taken",
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _StatCard(
+                                  title: _ridesHosted.toString(),
+                                  subtitle: "Rides Hosted",
+                                ),
+                              ),
+                            ],
+                          ),
+
+                    const SizedBox(height: 26),
+
+                    /// Menu Options
+                    _menuTile(
+                      icon: Icons.history,
+                      title: "Ride History",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RideHistoryPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    _menuTile(icon: Icons.star_border, title: "Saved Rides"),
+                    _menuTile(
+                      icon: Icons.help_outline,
+                      title: "Help & Support",
+                    ),
+                    _menuTile(
+                      icon: Icons.logout,
+                      title: "Logout",
+                      red: true,
+                      onTap: _handleLogout,
+                    ),
+
+                    const SizedBox(height: 100), // space for bottom nav
+                  ],
+                ),
               ),
-            ),
-    ),
-  );
-}
+      ),
+    );
+  }
 
   Widget _menuTile({
     required IconData icon,

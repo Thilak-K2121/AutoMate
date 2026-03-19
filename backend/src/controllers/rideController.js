@@ -313,7 +313,73 @@ const rideController = {
       console.error(error);
       res.status(500).json({ message: 'Server error ending ride' });
     }
+  },
+
+  // ✅ GET USER STATS (For the Profile Page)
+  getUserStats: async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      // Count rides the user created
+      const hostedCount = await db.query(
+        'SELECT COUNT(*) FROM rides WHERE creator_id = $1', 
+        [userId]
+      );
+
+      // Count rides the user joined (where they are a participant, but NOT the creator)
+      const joinedCount = await db.query(
+        `SELECT COUNT(*) FROM ride_participants rp 
+         JOIN rides r ON rp.ride_id = r.id 
+         WHERE rp.user_id = $1 AND r.creator_id != $1`,
+        [userId]
+      );
+
+      res.status(200).json({
+        ridesHosted: parseInt(hostedCount.rows[0].count),
+        ridesTaken: parseInt(joinedCount.rows[0].count)
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error fetching user stats' });
+    }
+  },
+
+  // ✅ GET MY RIDES HISTORY (For the Dashboard)
+  getMyRides: async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      // Get rides user created (Hosted)
+      const hostedRides = await db.query(
+        `SELECT r.*, u.name as creator_name 
+         FROM rides r 
+         JOIN users u ON r.creator_id = u.id 
+         WHERE r.creator_id = $1 
+         ORDER BY r.created_at DESC`, 
+         [userId]
+      );
+
+      // Get rides user joined as passenger (Joined)
+      const joinedRides = await db.query(
+        `SELECT r.*, u.name as creator_name 
+         FROM rides r 
+         JOIN users u ON r.creator_id = u.id 
+         JOIN ride_participants rp ON r.id = rp.ride_id 
+         WHERE rp.user_id = $1 AND r.creator_id != $1 
+         ORDER BY r.created_at DESC`, 
+         [userId]
+      );
+
+      res.status(200).json({
+        hosted: hostedRides.rows,
+        joined: joinedRides.rows
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error fetching my rides' });
+    }
   }
 };
+
 
 module.exports = rideController;

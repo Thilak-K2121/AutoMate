@@ -7,6 +7,8 @@ const verifyToken = require('../middleware/authMiddleware');
 router.use(verifyToken);
 
 router.post('/create', rideController.createRide);
+router.get('/stats', rideController.getUserStats);
+router.get('/my-rides', rideController.getMyRides);
 router.get('/nearby', rideController.getNearbyRides);
 router.post('/join', rideController.joinRide);
 router.post('/leave', rideController.leaveRide);
