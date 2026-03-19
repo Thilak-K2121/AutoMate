@@ -6,7 +6,7 @@ void main() {
 }
 
 class AutoMateApp extends StatelessWidget {
-  const AutoMateApp({Key? key}) : super(key: key);
+  const AutoMateApp({super.key});
 
   @override
   Widget build(BuildContext context) {

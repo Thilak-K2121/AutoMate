@@ -5,7 +5,7 @@ import 'home_page.dart';
 import 'register_page.dart';
 
 class SignInPage extends StatefulWidget {
-  const SignInPage({Key? key}) : super(key: key);
+  const SignInPage({super.key});
 
   @override
   State<SignInPage> createState() => _SignInPageState();

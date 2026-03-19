@@ -20,9 +20,6 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
-// 🚨 FORCE CREATE THE TABLE IF DOCKER IGNORED IT
-// 🚨 FORCE CREATE THE TABLE IF DOCKER IGNORED IT
-// 🚨 FORCE CREATE THE TABLE IF DOCKER IGNORED IT
 pool.query(`
   CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,

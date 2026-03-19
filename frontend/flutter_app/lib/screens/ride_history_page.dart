@@ -3,7 +3,7 @@ import 'home_page.dart';
 import 'profile_page.dart';
 
 class RideHistoryPage extends StatefulWidget {
-  const RideHistoryPage({Key? key}) : super(key: key);
+  const RideHistoryPage({super.key});
 
   @override
   State<RideHistoryPage> createState() => _RideHistoryPageState();

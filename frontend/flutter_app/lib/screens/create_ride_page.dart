@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class CreateRidePage extends StatefulWidget {
-  const CreateRidePage({Key? key}) : super(key: key);
+  const CreateRidePage({super.key});
 
   @override
   State<CreateRidePage> createState() => _CreateRidePageState();
@@ -279,8 +279,9 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                   children: [
                                     IconButton(
                                       onPressed: () {
-                                        if (_seats > 1)
+                                        if (_seats > 1) {
                                           setState(() => _seats--);
+                                        }
                                       },
                                       icon: const Icon(Icons.remove, size: 18),
                                     ),
@@ -292,8 +293,9 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                     ),
                                     IconButton(
                                       onPressed: () {
-                                        if (_seats < 4)
+                                        if (_seats < 4) {
                                           setState(() => _seats++);
+                                        }
                                       },
                                       icon: const Icon(Icons.add, size: 18),
                                     ),
@@ -333,7 +335,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                   value: _isFemaleOnly,
                                   onChanged: (val) =>
                                       setState(() => _isFemaleOnly = val),
-                                  activeColor: Colors.pink,
+                                  activeThumbColor: Colors.pink,
                                 ),
                               ],
                             ),

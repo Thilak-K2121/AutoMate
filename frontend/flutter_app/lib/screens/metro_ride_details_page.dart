@@ -7,8 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 class MetroRideDetailsPage extends StatefulWidget {
   final String rideId;
 
-  const MetroRideDetailsPage({Key? key, required this.rideId})
-    : super(key: key);
+  const MetroRideDetailsPage({super.key, required this.rideId});
 
   @override
   State<MetroRideDetailsPage> createState() => _MetroRideDetailsPageState();
@@ -436,7 +435,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                               seat: "1 seat",
                               host: isThisUserHost,
                             );
-                          }).toList(),
+                          }),
 
                           const SizedBox(height: 30),
 

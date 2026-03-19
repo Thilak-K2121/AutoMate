@@ -6,7 +6,7 @@ import '../services/api_service.dart';
 class ChatPage extends StatefulWidget {
   final String rideId;
 
-  const ChatPage({Key? key, required this.rideId}) : super(key: key);
+  const ChatPage({super.key, required this.rideId});
 
   @override
   State<ChatPage> createState() => _ChatPageState();

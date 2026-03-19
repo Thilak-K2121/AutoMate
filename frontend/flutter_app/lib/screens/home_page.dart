@@ -7,7 +7,7 @@ import 'metro_ride_details_page.dart';
 import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -18,6 +18,7 @@ class _HomePageState extends State<HomePage> {
   String _userId = "";
   List<dynamic> _availableRides = [];
   bool _isLoading = true;
+  String _searchQuery = ""; // NEW: Tracks the search bar input
 
   @override
   void initState() {
@@ -57,6 +58,39 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final displayRides = _searchQuery.isEmpty
+        ? _availableRides
+        : _availableRides.where((ride) {
+            final dest = (ride['destination'] ?? '').toString().toLowerCase();
+            final search = _searchQuery.toLowerCase().trim();
+
+            // 1. Direct Text Match (If they search exactly what the destination is)
+            if (dest.contains(search)) return true;
+
+            // 2. Smart "College" Category Logic
+            final collegeKeywords = ['college', 'bmsce', 'bms'];
+            final isSearchingCollege = collegeKeywords.any(
+              (kw) => kw.startsWith(search) || search.contains(kw),
+            );
+
+            if (isSearchingCollege) {
+              // Show ride ONLY if its DESTINATION contains college keywords
+              if (collegeKeywords.any((kw) => dest.contains(kw))) return true;
+            }
+
+            // 3. Smart "Metro" Category Logic
+            final metroKeywords = ['metro', 'national college', 'station'];
+            final isSearchingMetro = metroKeywords.any(
+              (kw) => kw.startsWith(search) || search.contains(kw),
+            );
+
+            if (isSearchingMetro) {
+              // Show ride ONLY if its DESTINATION contains metro keywords
+              if (metroKeywords.any((kw) => dest.contains(kw))) return true;
+            }
+
+            return false; // Hide ride if destination doesn't match
+          }).toList();
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6F9),
       bottomNavigationBar: _bottomNavBar(),
@@ -89,26 +123,24 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
+                                // REPLACE the location Row with this:
                                 Row(
                                   children: const [
                                     Icon(
                                       Icons.location_on,
                                       size: 16,
-                                      color: Color(0xFF6B7280),
+                                      color: Color(
+                                        0xFF34A853,
+                                      ), // Made it a nice green
                                     ),
                                     SizedBox(width: 4),
                                     Text(
-                                      "College Campus",
+                                      "BMSCE Campus",
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: Color(0xFF6B7280),
                                         fontWeight: FontWeight.w500,
                                       ),
-                                    ),
-                                    Icon(
-                                      Icons.keyboard_arrow_down,
-                                      size: 18,
-                                      color: Color(0xFF6B7280),
                                     ),
                                   ],
                                 ),
@@ -263,6 +295,40 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 26),
 
                       /// Available Rides Header
+                      /// NEW: Live Search Bar
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
+                          onChanged: (value) =>
+                              setState(() => _searchQuery = value),
+                          decoration: const InputDecoration(
+                            icon: Icon(Icons.search, color: Color(0xFF9CA3AF)),
+                            hintText: "Search destinations or gates...",
+                            hintStyle: TextStyle(
+                              color: Color(0xFF9CA3AF),
+                              fontSize: 14,
+                            ),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      /// Available Rides Header
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: const [
@@ -283,19 +349,19 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 14),
 
                       /// Dynamic Ride Cards
-                      /// Dynamic Ride Cards
-                      if (_availableRides.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
+                      if (displayRides.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
                           child: Center(
                             child: Text(
-                              "No rides available right now.\nBe the first to create one!",
+                              _searchQuery.isEmpty
+                                  ? "No rides available right now.\nBe the first to create one!"
+                                  : "No rides found matching '$_searchQuery'.",
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Color(0xFF6B7280),
                                 fontSize: 15,
                               ),
@@ -303,7 +369,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         )
                       else
-                        ..._availableRides.map((ride) {
+                        ...displayRides.map((ride) {
+                          // ... the rest of your map function stays EXACTLY the same!
                           final bool isMetro = ride['destination']
                               .toString()
                               .toLowerCase()
@@ -329,7 +396,7 @@ class _HomePageState extends State<HomePage> {
                             isMyRide:
                                 isMyRide, // NEW: Pass the flag to the card
                           );
-                        }).toList(),
+                        }),
 
                       const SizedBox(height: 90),
                     ],
