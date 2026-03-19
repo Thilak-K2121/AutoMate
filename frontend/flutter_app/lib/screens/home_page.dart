@@ -251,20 +251,25 @@ class _HomePageState extends State<HomePage> {
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: () {
-                                // For now, this shows a pop-up. Later we can make it auto-fill the Create Ride page!
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Filtering Metro rides... 🚇",
+                              onTap: () async {
+                                // Instantly auto-fill for a trip leaving campus
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CreateRidePage(
+                                      initialDestination:
+                                          "National College Metro Station",
+                                      initialMeetingPoint: "BMSCE Gate 1",
                                     ),
                                   ),
                                 );
+                                if (result == true) _fetchDashboardData();
                               },
                               child: _quickCard(
-                                icon: Icons.directions_car,
+                                icon: Icons
+                                    .directions_subway, // Swapped to a train icon!
                                 title: "Go to Metro",
-                                subtitle: "1.5 km away",
+                                subtitle: "Auto-fill ride",
                                 color: const Color(0xFF34A853),
                               ),
                             ),
@@ -272,19 +277,24 @@ class _HomePageState extends State<HomePage> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: GestureDetector(
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Filtering College rides... 🏫",
+                              onTap: () async {
+                                // Instantly auto-fill for a trip heading to campus
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CreateRidePage(
+                                      initialDestination: "BMSCE Campus",
+                                      initialMeetingPoint:
+                                          "National College Metro Station",
                                     ),
                                   ),
                                 );
+                                if (result == true) _fetchDashboardData();
                               },
                               child: _quickCard(
-                                icon: Icons.apartment,
+                                icon: Icons.school, // Swapped to a school icon!
                                 title: "Go to College",
-                                subtitle: "",
+                                subtitle: "Auto-fill ride",
                                 color: const Color(0xFF2F80ED),
                               ),
                             ),
