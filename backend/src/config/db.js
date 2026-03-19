@@ -20,17 +20,22 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
+// 🚨 FORCE CREATE THE TABLE AND ADD RIDE_ID
+// 🚨 FORCE CREATE THE TABLE AND ADD RIDE_ID
 pool.query(`
   CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,
-      user_id UUID REFERENCES users(id) ON DELETE CASCADE, 
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
       title VARCHAR(255) NOT NULL,
       message TEXT NOT NULL,
       icon_type VARCHAR(50) DEFAULT 'person',
       is_read BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
-`).then(() => console.log("✅ Notifications table verified/created successfully!"))
+  
+  -- 👇 FIXED: Changed INTEGER to UUID to match your rides table!
+  ALTER TABLE notifications ADD COLUMN IF NOT EXISTS ride_id UUID REFERENCES rides(id) ON DELETE CASCADE;
+`).then(() => console.log("✅ Notifications table verified with ride_id!"))
   .catch(err => console.error("Database table creation error:", err));
 
 module.exports = {

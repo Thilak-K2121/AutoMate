@@ -168,10 +168,18 @@ const rideController = {
       const passengerName = joiningUser.rows[0]?.name?.split(' ')[0] || 'Someone';
 
       // 2. Insert the notification for the Ride Creator
+      // Inside joinRide...
+      // 👇 FIXED: Now we save the ride_id ($2) into the database!
       await db.query(
-        `INSERT INTO notifications (user_id, title, message, icon_type) 
-         VALUES ($1, $2, $3, $4)`,
-        [ride.creator_id, 'New Passenger! 🚗', `${passengerName} just joined your ride to ${ride.destination}.`, 'person_add']
+        `INSERT INTO notifications (user_id, ride_id, title, message, icon_type) 
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          ride.creator_id, 
+          rideId, // <-- Pass the ride ID here
+          'New Passenger!', 
+          `${req.user.name || 'Someone'} joined your ride to ${ride.destination}`, 
+          'person'
+        ]
       );
       // 👆 END NOTIFICATION LOGIC
       socketManager.getIO()
@@ -304,6 +312,12 @@ const rideController = {
         .emit('rideEnded', {
           message: 'Ride ended'
         });
+
+     try {
+        await db.query('DELETE FROM notifications WHERE ride_id = $1', [rideId]);
+      } catch (err) {
+        console.error('Failed to delete notifications:', err);
+}
 
       res.status(200).json({
         message: 'Ride ended successfully'

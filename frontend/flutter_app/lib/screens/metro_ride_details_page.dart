@@ -1,5 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_app/screens/create_ride_page.dart';
+import 'package:flutter_app/screens/home_page.dart';
+import 'package:flutter_app/screens/map_page.dart';
+import 'package:flutter_app/screens/my_rides_page.dart';
+import 'package:flutter_app/screens/profile_page.dart';
 import '../services/api_service.dart';
 import 'chat_page.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -652,26 +657,92 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
     );
   }
 
-  Widget _bottomNavBar() {
-    return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(horizontal: 28),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
-          _NavItem(icon: Icons.home, label: "Home", active: true),
-          _NavItem(icon: Icons.directions_car, label: "Rides"),
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: Color(0xFF2F80ED),
-            child: Icon(Icons.add, color: Colors.white),
+ Widget _bottomNavBar() {
+  return Container(
+    height: 80,
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(.05),
+          blurRadius: 10,
+          offset: const Offset(0, -3),
+        ),
+      ],
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // HOME
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const HomePage()),
+            );
+          },
+          child: _NavItem(icon: Icons.home, label: "Home", active: false),
+        ),
+
+        // RIDES
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MyRidesPage()),
+            );
+          },
+          child: _NavItem(icon: Icons.history, label: "Rides"),
+        ),
+
+        // ADD RIDE
+        GestureDetector(
+          onTap: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CreateRidePage(),
+              ),
+            );
+            if (result == true) _fetchData();
+          },
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
+              color: Color(0xFF2F80ED),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.add, color: Colors.white),
           ),
-          _NavItem(icon: Icons.map, label: "Map"),
-          _NavItem(icon: Icons.person_outline, label: "Profile"),
-        ],
-      ),
-    );
-  }
+        ),
+
+        // MAP
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MapPage()),
+            );
+          },
+          child: _NavItem(icon: Icons.map, label: "Map"),
+        ),
+
+        // PROFILE
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+            );
+          },
+          child: _NavItem(icon: Icons.person_outline, label: "Profile"),
+        ),
+      ],
+    ),
+  );
+}
 }
 
 class _NavItem extends StatelessWidget {

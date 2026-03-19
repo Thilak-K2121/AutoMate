@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'create_ride_page.dart';
+import 'my_rides_page.dart';
+import 'map_page.dart';
 import 'notifications_page.dart';
 import 'metro_ride_details_page.dart';
 import 'profile_page.dart';
@@ -54,6 +56,22 @@ class _HomePageState extends State<HomePage> {
         _isLoading = false;
       });
     }
+  }
+
+  IconData getGreetingIcon() {
+    final hour = DateTime.now().hour;
+
+    if (hour < 12) return Icons.wb_twilight; // morning
+    if (hour < 17) return Icons.light_mode; // day
+    return Icons.nightlight_round; // night
+  }
+
+  String getGreeting() {
+    final hour = DateTime.now().hour;
+
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    return "Good Evening";
   }
 
   @override
@@ -125,18 +143,16 @@ class _HomePageState extends State<HomePage> {
                                 const SizedBox(height: 4),
                                 // REPLACE the location Row with this:
                                 Row(
-                                  children: const [
+                                  children: [
                                     Icon(
-                                      Icons.location_on,
+                                      getGreetingIcon(),
                                       size: 16,
-                                      color: Color(
-                                        0xFF34A853,
-                                      ), // Made it a nice green
+                                      color: Color(0xFF6B7280),
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 6),
                                     Text(
-                                      "BMSCE Campus",
-                                      style: TextStyle(
+                                      getGreeting(),
+                                      style: const TextStyle(
                                         fontSize: 14,
                                         color: Color(0xFF6B7280),
                                         fontWeight: FontWeight.w500,
@@ -565,7 +581,11 @@ class _HomePageState extends State<HomePage> {
                 ), // Slightly smaller text
                 const SizedBox(width: 8), // Reduced gap
 
-                const Icon(Icons.event, size: 16, color: Color(0xFF6B7280)),
+                const Icon(
+                  Icons.location_pin,
+                  size: 16,
+                  color: Color(0xFF6B7280),
+                ),
                 const SizedBox(width: 4),
                 // NEW: Expanded prevents overflow and truncates long location names!
                 Expanded(
@@ -636,12 +656,12 @@ class _HomePageState extends State<HomePage> {
           _navItem(Icons.home, "Home", true),
 
           // NEW: Interactive Rides Button
+          // REPLACE the existing Rides button with this:
           GestureDetector(
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("My Rides history coming soon! 🚗"),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyRidesPage()),
               );
             },
             child: _navItem(Icons.history, "Rides", false),
@@ -667,12 +687,12 @@ class _HomePageState extends State<HomePage> {
           ),
 
           // NEW: Interactive Map Button
+          // REPLACE the existing Map button with this:
           GestureDetector(
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Live Map integration coming soon! 🗺️"),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MapPage()),
               );
             },
             child: _navItem(Icons.map, "Map", false),
