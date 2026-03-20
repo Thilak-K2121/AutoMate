@@ -4,7 +4,7 @@ import '../services/api_service.dart';
 import 'metro_ride_details_page.dart';
 
 class MyRidesPage extends StatefulWidget {
-  const MyRidesPage({Key? key}) : super(key: key);
+  const MyRidesPage({super.key});
 
   @override
   State<MyRidesPage> createState() => _MyRidesPageState();
