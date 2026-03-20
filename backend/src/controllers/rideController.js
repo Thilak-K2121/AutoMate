@@ -6,7 +6,7 @@ const rideController = {
   // ✅ CREATE RIDE
   createRide: async (req, res) => {
     try {
-      const { destination, meeting_point, seats_total, female_only } = req.body;
+      const { destination, meeting_point, seats_total, female_only, paymentMode } = req.body;
       const creator_id = req.user.id;
 
       const seats_available = seats_total - 1;
@@ -27,12 +27,20 @@ const rideController = {
       await db.query('BEGIN');
 
       const rideResult = await db.query(
-        `INSERT INTO rides 
-         (destination, meeting_point, creator_id, seats_total, seats_available, female_only) 
-         VALUES ($1, $2, $3, $4, $5, $6) 
-         RETURNING *`,
-        [destination, meeting_point, creator_id, seats_total, seats_available, isFemaleOnly]
-      );
+          `INSERT INTO rides 
+          (destination, meeting_point, creator_id, seats_total, seats_available, female_only, payment_mode) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7) 
+          RETURNING *`,
+          [
+            destination,
+            meeting_point,
+            creator_id,
+            seats_total,
+            seats_available,
+            isFemaleOnly,
+            paymentMode || 'Any' // Default fallback
+          ]
+        );
 
       const newRide = rideResult.rows[0];
 

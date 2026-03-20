@@ -24,6 +24,14 @@ class _CreateRidePageState extends State<CreateRidePage> {
   bool _isLoading = false;
   bool _isFemaleOnly = false;
 
+  // 👇 NEW: Payment selection
+  String _selectedPayment = 'Any (Cash/UPI)';
+  final List<String> _paymentOptions = [
+    'Any (Cash/UPI)',
+    'UPI Only',
+    'Cash Only',
+  ];
+
   // NEW
   bool _isCurrentUserFemale = false;
 
@@ -82,6 +90,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
         'meeting_point': meetingPoint,
         'seats_total': _seats,
         'female_only': _isFemaleOnly,
+        'paymentMode': _selectedPayment, // 👇 NEW
       });
 
       if (response.statusCode == 201) {
@@ -134,8 +143,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
             child: Image.asset(
               "assets/images/bg_waves.png",
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  const SizedBox(),
+              errorBuilder: (context, error, stackTrace) => const SizedBox(),
             ),
           ),
           SafeArea(
@@ -148,8 +156,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                     children: [
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child:
-                            const Icon(Icons.arrow_back_ios, size: 20),
+                        child: const Icon(Icons.arrow_back_ios, size: 20),
                       ),
                       const Spacer(),
                       GestureDetector(
@@ -162,8 +169,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                             borderRadius: BorderRadius.circular(10),
                             boxShadow: [
                               BoxShadow(
-                                color:
-                                    Colors.black.withOpacity(.05),
+                                color: Colors.black.withOpacity(.05),
                                 blurRadius: 6,
                                 offset: const Offset(0, 3),
                               ),
@@ -191,8 +197,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                   child: Image.asset(
                     "assets/images/auto_icon.png",
                     width: 140,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(
+                    errorBuilder: (context, error, stackTrace) => const Icon(
                       Icons.directions_car,
                       size: 80,
                       color: Colors.green,
@@ -202,11 +207,9 @@ class _CreateRidePageState extends State<CreateRidePage> {
                 const SizedBox(height: 26),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 22),
+                    padding: const EdgeInsets.symmetric(horizontal: 22),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
                           "Destination",
@@ -254,12 +257,10 @@ class _CreateRidePageState extends State<CreateRidePage> {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius:
-                                BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(18),
                             boxShadow: [
                               BoxShadow(
-                                color:
-                                    Colors.black.withOpacity(.04),
+                                color: Colors.black.withOpacity(.04),
                                 blurRadius: 10,
                                 offset: const Offset(0, 6),
                               ),
@@ -283,8 +284,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                               Container(
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF3F4F6),
-                                  borderRadius:
-                                      BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Row(
                                   children: [
@@ -294,8 +294,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                           setState(() => _seats--);
                                         }
                                       },
-                                      icon: const Icon(Icons.remove,
-                                          size: 18),
+                                      icon: const Icon(Icons.remove, size: 18),
                                     ),
                                     Text("$_seats"),
                                     IconButton(
@@ -304,8 +303,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                           setState(() => _seats++);
                                         }
                                       },
-                                      icon:
-                                          const Icon(Icons.add, size: 18),
+                                      icon: const Icon(Icons.add, size: 18),
                                     ),
                                   ],
                                 ),
@@ -313,17 +311,78 @@ class _CreateRidePageState extends State<CreateRidePage> {
                             ],
                           ),
                         ),
-
+                        const SizedBox(height: 20),
+                        const Text(
+                          "Accepted Payment",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: _selectedPayment,
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down,
+                                color: Color(0xFF6B7280),
+                              ),
+                              items: _paymentOptions.map((String mode) {
+                                return DropdownMenuItem<String>(
+                                  value: mode,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        mode.contains('UPI')
+                                            ? Icons.qr_code_scanner
+                                            : Icons.money,
+                                        color: const Color(0xFF34A853),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        mode,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedPayment = newValue!;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
                         // UPDATED female-only toggle
                         if (_isCurrentUserFemale) ...[
                           const SizedBox(height: 20),
                           Container(
                             decoration: BoxDecoration(
                               color: Colors.pink.shade50,
-                              borderRadius:
-                                  BorderRadius.circular(16),
-                              border: Border.all(
-                                  color: Colors.pink.shade200),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.pink.shade200),
                             ),
                             child: SwitchListTile(
                               activeThumbColor: Colors.pink,
@@ -354,18 +413,13 @@ class _CreateRidePageState extends State<CreateRidePage> {
                         const SizedBox(height: 30),
 
                         GestureDetector(
-                          onTap:
-                              _isLoading ? null : _handleCreateRide,
+                          onTap: _isLoading ? null : _handleCreateRide,
                           child: Container(
                             height: 56,
                             decoration: BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(30),
                               gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFF34C759),
-                                  Color(0xFF28A745)
-                                ],
+                                colors: [Color(0xFF34C759), Color(0xFF28A745)],
                               ),
                             ),
                             child: Center(
@@ -373,8 +427,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                   ? const SizedBox(
                                       height: 20,
                                       width: 20,
-                                      child:
-                                          CircularProgressIndicator(
+                                      child: CircularProgressIndicator(
                                         color: Colors.white,
                                         strokeWidth: 2,
                                       ),
@@ -384,8 +437,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 17,
-                                        fontWeight:
-                                            FontWeight.w600,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                             ),
@@ -410,8 +462,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
     required TextEditingController controller,
   }) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -438,8 +489,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                   color: Colors.black38,
                 ),
               ),
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
         ],

@@ -414,6 +414,10 @@ class _HomePageState extends State<HomePage> {
                       final bool isActiveJoinedRide =
                           ride['id'].toString() == _activeRideId;
 
+                      // 👇 NEW: Extract payment mode
+                      final String paymentMode =
+                          ride['payment_mode'] ?? 'Any (Cash/UPI)';
+
                       return _rideCard(
                         id: ride['id'].toString(),
                         title: ride['destination'],
@@ -424,11 +428,10 @@ class _HomePageState extends State<HomePage> {
                         isMyRide: isMyRide,
                         isFemaleOnly: isFemaleOnly,
                         isActiveJoinedRide: isActiveJoinedRide,
+                        paymentMode: paymentMode, // 👇 NEW
                         buttonColor: isMetro
                             ? const Color(0xFF34A853)
                             : const Color(0xFF2F80ED),
-                        // isMyRide: isMyRide,
-                        // isFemaleOnly: isFemaleOnly,
                       );
                     }),
 
@@ -516,6 +519,7 @@ class _HomePageState extends State<HomePage> {
     required bool isMyRide,
     required bool isFemaleOnly,
     required bool isActiveJoinedRide,
+    required String paymentMode, // 👇 NEW
   }) {
     Color cardBackground = Colors.white;
     Color buttonFinalColor = buttonColor;
@@ -562,7 +566,10 @@ class _HomePageState extends State<HomePage> {
                     backgroundColor: isFemaleOnly
                         ? Colors.pink
                         : const Color(0xFF34A853),
-                    foregroundColor: Colors.black,
+                    foregroundColor: isFemaleOnly
+                        ? Colors
+                              .white // Female-only ride → white text
+                        : Colors.black, // Normal ride → black text
                   ),
                   onPressed: () => Navigator.pop(context, true),
                   child: const Text("Join New Ride"),
@@ -714,6 +721,40 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(width: 8),
                 // 👇 Push everything before button to left
+                // 👇 NEW: Payment Mode Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        paymentMode.contains('UPI')
+                            ? Icons.qr_code_scanner
+                            : Icons.payments_outlined,
+                        size: 12,
+                        color: const Color(0xFF4B5563),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        paymentMode.replaceAll(" (Cash/UPI)", ""),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4B5563),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
                 const Spacer(),
 
                 Container(

@@ -48,6 +48,15 @@ pool.query(`
   );
 `).then(() => console.log("✅ Blocked Passengers table verified!"))
   .catch(err => console.error("Database table creation error:", err));
+
+  // 🚨 ADD THIS to your forced creation block in db.js
+pool.query(`
+  -- 👇 NEW: Add payment mode to rides table
+  ALTER TABLE rides ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(20) DEFAULT 'Any';
+`).then(() => console.log("✅ Payment Mode column verified!"))
+  .catch(err => console.error("Database table creation error:", err));
+
+  
 module.exports = {
   query: (text, params) => pool.query(text, params),
 };
