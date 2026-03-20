@@ -165,6 +165,30 @@ joinRide: async (req, res) => {
       }
     }
 
+    // 👇 NEW: Check if the user is currently HOSTING an active ride
+const hostingCheck = await db.query(
+  `SELECT id FROM rides WHERE creator_id = $1 AND status IN ('active', 'full') LIMIT 1`,
+  [userId]
+);
+
+if (hostingCheck.rows.length > 0) {
+  const hostedRideId = hostingCheck.rows[0].id;
+
+  // 🚫 Prevent joining your own ride
+  if (hostedRideId == rideId) {
+    await db.query('ROLLBACK');
+    return res.status(400).json({
+      message: 'You cannot join your own ride as a passenger.'
+    });
+  }
+
+  // 👇 Auto-cancel their hosted ride
+  await db.query(
+    `UPDATE rides SET status = 'cancelled' WHERE id = $1`,
+    [hostedRideId]
+  );
+}
+
     // 👇 NEW: Check if user already in another active ride
     const existingRide = await db.query(
       `SELECT r.id 

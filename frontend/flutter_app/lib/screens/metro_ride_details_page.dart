@@ -143,37 +143,111 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
     }
   }
 
+  Future<bool> _showWarningDialog(
+    String title,
+    String message,
+    Color btnColor,
+  ) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: btnColor,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Continue & Join"),
+          ),
+        ],
+      ),
+    );
+    return confirm ?? false;
+  }
+
   //handling the join ride
-  // --- ADD THESE TWO FUNCTIONS ---
   Future<void> _handleJoinRide() async {
+    // 1. Check current ride status
+    final myRidesRes = await ApiService.getRequest('/rides/my-rides');
+
+    if (myRidesRes.statusCode == 200) {
+      final data = jsonDecode(myRidesRes.body);
+
+      final hosted = data['hosted'] as List<dynamic>? ?? [];
+      final joined = data['joined'] as List<dynamic>? ?? [];
+
+      // 👇 Check if hosting a ride
+      final bool isHosting = hosted.any(
+        (r) => r['status'] == 'active' || r['status'] == 'full',
+      );
+
+      // 👇 Check if passenger in another ride
+      final bool isPassenger = joined.any(
+        (r) =>
+            (r['status'] == 'active' || r['status'] == 'full') &&
+            r['id'].toString() != widget.rideId,
+      );
+
+      // 2. SHOW SMART WARNINGS
+      if (isHosting) {
+        final proceed = await _showWarningDialog(
+          "Cancel Your Ride?",
+          "Joining this ride will CANCEL the ride you are hosting and affect your passengers.\n\nDo you want to continue?",
+          Colors.red,
+        );
+        if (!proceed) return;
+      } else if (isPassenger) {
+        final proceed = await _showWarningDialog(
+          "Switch Rides?",
+          "You are already in another ride.\n\nJoining this ride will leave your current ride.",
+          const Color(0xFFF59E0B),
+        );
+        if (!proceed) return;
+      }
+    }
+
+    // 3. JOIN API CALL (same as before)
     setState(() => _isLoading = true);
+
     try {
-      final res = await ApiService.postRequest('/rides/join', {
-        'rideId': widget.rideId,
+      final response = await ApiService.postRequest('/rides/join', {
+        "rideId": widget.rideId,
       });
-      if (res.statusCode == 200) {
+
+      if (response.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Successfully joined the ride! 🎉")),
+            const SnackBar(
+              content: Text("Successfully joined the ride!"),
+              backgroundColor: Colors.green,
+            ),
           );
-          _fetchData(); // Refresh the page to show the user in the participants list!
+
+          Navigator.pop(context, true); // go back to home
         }
       } else {
-        final errorData = jsonDecode(res.body);
+        final error = jsonDecode(response.body);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorData['message'] ?? "Failed to join")),
+            SnackBar(
+              content: Text(error['message'] ?? "Failed to join"),
+              backgroundColor: Colors.red,
+            ),
           );
           setState(() => _isLoading = false);
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Network error joining ride.")),
-        );
-        setState(() => _isLoading = false);
-      }
+      debugPrint("Join error: $e");
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

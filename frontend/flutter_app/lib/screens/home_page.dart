@@ -429,9 +429,9 @@ class _HomePageState extends State<HomePage> {
                         isFemaleOnly: isFemaleOnly,
                         isActiveJoinedRide: isActiveJoinedRide,
                         paymentMode: paymentMode, // 👇 NEW
-                        buttonColor: isMetro
-                            ? const Color(0xFF34A853)
-                            : const Color(0xFF2F80ED),
+                        buttonColor: isFemaleOnly
+                            ? Colors.pink
+                            : const Color(0xFF34A853),
                       );
                     }),
 
@@ -523,7 +523,7 @@ class _HomePageState extends State<HomePage> {
   }) {
     Color cardBackground = Colors.white;
     Color buttonFinalColor = buttonColor;
-    String buttonText = "Join";
+    String buttonText = "View";
 
     if (isActiveJoinedRide) {
       cardBackground = isFemaleOnly
@@ -538,56 +538,7 @@ class _HomePageState extends State<HomePage> {
 
     return GestureDetector(
       onTap: () async {
-        // 🚫 Double booking protection
-        if (_activeRideId != null && _activeRideId != id && !isMyRide) {
-          final bool? shouldSwap = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: const Text(
-                "Switch Rides?",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              content: Text(
-                "You are already in a ride to $_activeRideDest.\n\nJoining this ride will automatically leave your current one.",
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text(
-                    "Cancel",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isFemaleOnly
-                        ? Colors.pink
-                        : const Color(0xFF34A853),
-                    foregroundColor: isFemaleOnly
-                        ? Colors
-                              .white // Female-only ride → white text
-                        : Colors.black, // Normal ride → black text
-                  ),
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text("Join New Ride"),
-                ),
-              ],
-            ),
-          );
-
-          if (shouldSwap != true) return;
-
-          // 👇 DIRECTLY JOIN NEW RIDE (NO JUST NAVIGATION)
-          await ApiService.postRequest('/rides/join', {"rideId": id});
-
-          // 👇 REFRESH UI IMMEDIATELY
-          await _fetchDashboardData();
-          return;
-        }
-
+        // 👇 FIXED: Removed the blocker! Now anyone can view ride details freely
         await Navigator.push(
           context,
           MaterialPageRoute(
@@ -595,7 +546,7 @@ class _HomePageState extends State<HomePage> {
           ),
         );
 
-        // 👇 ALWAYS refresh (not only when result == true)
+        // Always refresh when coming back
         await _fetchDashboardData();
       },
       child: Container(
