@@ -21,6 +21,9 @@ class _HomePageState extends State<HomePage> {
   List<dynamic> _availableRides = [];
   bool _isLoading = true;
   String _searchQuery = ""; // NEW: Tracks the search bar input
+  // 👇 NEW: Track the currently joined ride for the UI & Double-Booking check
+  String? _activeRideId;
+  String? _activeRideDest;
 
   @override
   void initState() {
@@ -29,19 +32,41 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchDashboardData() async {
+    await Future.delayed(const Duration(milliseconds: 300));
     try {
-      // Fetch user profile for the greeting
+      // 1. Fetch user profile
       final userResponse = await ApiService.getRequest('/auth/me');
       if (userResponse.statusCode == 200) {
         final userData = jsonDecode(userResponse.body);
         setState(() {
-          // Extract first name for a friendly greeting
           _userName = userData['user']['name'].split(' ')[0];
-          _userId = userData['user']['id'].toString(); // NEW: Save the ID
+          _userId = userData['user']['id'].toString();
         });
       }
 
-      // Fetch active nearby rides
+      // 2. NEW: Fetch My Rides to check active ride
+      final myRidesResponse = await ApiService.getRequest('/rides/my-rides');
+      if (myRidesResponse.statusCode == 200) {
+        final myRidesData = jsonDecode(myRidesResponse.body);
+        final joinedRides = myRidesData['joined'] as List<dynamic>? ?? [];
+
+        final active = joinedRides.cast<dynamic?>().firstWhere(
+          (r) => r != null && r['status'] != 'completed',
+          orElse: () => null,
+        );
+
+        setState(() {
+          if (active != null) {
+            _activeRideId = active['id'].toString();
+            _activeRideDest = active['destination'].toString();
+          } else {
+            _activeRideId = null;
+            _activeRideDest = null;
+          }
+        });
+      }
+
+      // 3. Fetch nearby rides
       final ridesResponse = await ApiService.getRequest('/rides/nearby');
       if (ridesResponse.statusCode == 200) {
         final ridesData = jsonDecode(ridesResponse.body);
@@ -104,6 +129,15 @@ class _HomePageState extends State<HomePage> {
 
             return false;
           }).toList();
+    // 👇 NEW: Pin active ride to top
+    displayRides.sort((a, b) {
+      final idA = a['id'].toString();
+      final idB = b['id'].toString();
+
+      if (idA == _activeRideId) return -1;
+      if (idB == _activeRideId) return 1;
+      return 0;
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6F9),
@@ -377,19 +411,24 @@ class _HomePageState extends State<HomePage> {
                       final String creatorId =
                           ride['user_id']?.toString() ?? '';
                       final bool isMyRide = creatorId == _userId;
+                      final bool isActiveJoinedRide =
+                          ride['id'].toString() == _activeRideId;
 
                       return _rideCard(
                         id: ride['id'].toString(),
                         title: ride['destination'],
                         people: "${ride['seats_available']} seats left",
                         gate: ride['meeting_point'],
-                        price: "TBD",
+                        price: "",
                         time: "Active",
+                        isMyRide: isMyRide,
+                        isFemaleOnly: isFemaleOnly,
+                        isActiveJoinedRide: isActiveJoinedRide,
                         buttonColor: isMetro
                             ? const Color(0xFF34A853)
                             : const Color(0xFF2F80ED),
-                        isMyRide: isMyRide,
-                        isFemaleOnly: isFemaleOnly,
+                        // isMyRide: isMyRide,
+                        // isFemaleOnly: isFemaleOnly,
                       );
                     }),
 
@@ -476,54 +515,111 @@ class _HomePageState extends State<HomePage> {
     required Color buttonColor,
     required bool isMyRide,
     required bool isFemaleOnly,
+    required bool isActiveJoinedRide,
   }) {
+    Color cardBackground = Colors.white;
+    Color buttonFinalColor = buttonColor;
+    String buttonText = "Join";
+
+    if (isActiveJoinedRide) {
+      cardBackground = isFemaleOnly
+          ? Colors.pink.shade50
+          : const Color(0xFFE8F5E9);
+      buttonFinalColor = isFemaleOnly ? Colors.pink : const Color(0xFF34A853);
+      buttonText = "View Details";
+    } else if (isMyRide) {
+      buttonFinalColor = Colors.grey.shade400;
+      buttonText = "Your Ride";
+    }
+
     return GestureDetector(
       onTap: () async {
-        final result = await Navigator.push(
+        // 🚫 Double booking protection
+        if (_activeRideId != null && _activeRideId != id && !isMyRide) {
+          final bool? shouldSwap = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                "Switch Rides?",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: Text(
+                "You are already in a ride to $_activeRideDest.\n\nJoining this ride will automatically leave your current one.",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isFemaleOnly
+                        ? Colors.pink
+                        : const Color(0xFF34A853),
+                    foregroundColor: Colors.black,
+                  ),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text("Join New Ride"),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldSwap != true) return;
+
+          // 👇 DIRECTLY JOIN NEW RIDE (NO JUST NAVIGATION)
+          await ApiService.postRequest('/rides/join', {"rideId": id});
+
+          // 👇 REFRESH UI IMMEDIATELY
+          await _fetchDashboardData();
+          return;
+        }
+
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => MetroRideDetailsPage(rideId: id),
           ),
         );
 
-        if (result == true) {
-          _fetchDashboardData();
-        }
+        // 👇 ALWAYS refresh (not only when result == true)
+        await _fetchDashboardData();
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBackground,
           borderRadius: BorderRadius.circular(22),
-
-          // ✅ Female-only border
-          // border: isFemaleOnly
-          //     ? Border.all(color: Colors.pink.shade200, width: 1.5)
-          // //     : null,
-
-          // // ✅ Shadow only for normal rides
-          // boxShadow: isFemaleOnly
-          //     ? []
-          //     : [
-          //         BoxShadow(
-          //           color: Colors.black.withOpacity(0.04),
-          //           blurRadius: 10,
-          //           offset: const Offset(0, 6),
-          //         ),
-          //       ],
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          border: isActiveJoinedRide
+              ? Border.all(
+                  color: isFemaleOnly
+                      ? Colors.pink.shade300
+                      : Colors.green.shade300,
+                  width: 2,
+                )
+              : (isFemaleOnly
+                    ? Border.all(color: Colors.pink.shade100, width: 1.5)
+                    : null),
+          boxShadow: isActiveJoinedRide
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// 🔥 HEADER (FIXED — no flex issues)
             Row(
               children: [
                 CircleAvatar(
@@ -533,7 +629,6 @@ class _HomePageState extends State<HomePage> {
                       : const Color(0xFF34A853),
                 ),
                 const SizedBox(width: 8),
-
                 Expanded(
                   child: Text(
                     title,
@@ -545,17 +640,38 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                if (isFemaleOnly)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 6),
-                    child: Icon(Icons.female, color: Colors.pink, size: 16),
+                if (isActiveJoinedRide)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isFemaleOnly
+                          ? Colors.pink
+                          : const Color(0xFF34A853),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.check, color: Colors.white, size: 12),
+                        SizedBox(width: 4),
+                        Text(
+                          "Joined",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
               ],
             ),
 
             const SizedBox(height: 6),
 
-            /// ⏱ TIME (moved below → avoids layout crash)
             Row(
               children: [
                 const Icon(
@@ -576,23 +692,18 @@ class _HomePageState extends State<HomePage> {
 
             const SizedBox(height: 10),
 
-            /// 📍 DETAILS ROW (safe layout)
             Row(
               children: [
                 const Icon(Icons.group, size: 16, color: Color(0xFF6B7280)),
                 const SizedBox(width: 4),
                 Text(people, style: const TextStyle(fontSize: 12)),
-
                 const SizedBox(width: 8),
-
                 const Icon(
                   Icons.location_pin,
                   size: 16,
                   color: Color(0xFF6B7280),
                 ),
                 const SizedBox(width: 4),
-
-                /// ✅ Flexible instead of Expanded (IMPORTANT)
                 Flexible(
                   child: Text(
                     gate,
@@ -601,31 +712,21 @@ class _HomePageState extends State<HomePage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-
                 const SizedBox(width: 8),
+                // 👇 Push everything before button to left
+                const Spacer(),
 
-                Text(
-                  price,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                /// 🚀 BUTTON
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: isMyRide ? Colors.grey.shade400 : buttonColor,
+                    color: buttonFinalColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    isMyRide ? "Your Ride" : "Join",
+                    buttonText,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
