@@ -61,7 +61,11 @@ const rideController = {
       const currentUserId = req.user.id;
 
      const result = await db.query(
-  `SELECT DISTINCT r.*, u.name as creator_name, u.rating 
+  `SELECT DISTINCT r.*, 
+          u.name as creator_name, 
+          u.gender as creator_gender, 
+          u.phone as creator_phone, 
+          u.rating 
    FROM rides r 
    JOIN users u ON r.creator_id = u.id 
    LEFT JOIN ride_participants rp 
@@ -71,6 +75,12 @@ const rideController = {
      FROM users WHERE id = $1
    ) as cu
    WHERE r.status IN ('active', 'full')
+
+   -- 👇 NEW: Hide rides where user is blocked (Ghosting effect)
+   AND r.id NOT IN (
+     SELECT ride_id FROM blocked_passengers WHERE user_id = $1
+   )
+
    AND (
      (
        r.status = 'active'
@@ -99,6 +109,14 @@ joinRide: async (req, res) => {
   try {
     const { rideId } = req.body;
     const userId = req.user.id;
+
+    const blockCheck = await db.query(
+      'SELECT id FROM blocked_passengers WHERE ride_id = $1 AND user_id = $2',
+      [rideId, userId]
+    );
+    if (blockCheck.rows.length > 0) {
+      return res.status(403).json({ message: 'You are not permitted to join this ride.' });
+    }
 
     await db.query('BEGIN');
 
@@ -309,6 +327,87 @@ joinRide: async (req, res) => {
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server error fetching ride details' });
+    }
+  },
+  // ✅ REMOVE PASSENGER (Kicks them out, but they can return)
+  removePassenger: async (req, res) => {
+    try {
+      const { id: rideId } = req.params;
+      const { passengerId } = req.body;
+      const hostId = req.user.id;
+
+      // 1. Verify the requester is actually the host
+      const rideCheck = await db.query('SELECT creator_id FROM rides WHERE id = $1', [rideId]);
+      if (rideCheck.rows.length === 0 || rideCheck.rows[0].creator_id !== hostId) {
+        return res.status(403).json({ message: 'Only the host can remove passengers.' });
+      }
+
+      // 2. Remove passenger and update seats
+      await db.query('BEGIN');
+      const deleteRes = await db.query(
+        'DELETE FROM ride_participants WHERE ride_id = $1 AND user_id = $2 RETURNING *',
+        [rideId, passengerId]
+      );
+
+      if (deleteRes.rowCount > 0) {
+        await db.query(
+          "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1",
+          [rideId]
+        );
+      }
+      await db.query('COMMIT');
+
+      // (Optional) Send a socket notification to passengerId here letting them know they were removed
+
+      res.status(200).json({ message: 'Passenger removed successfully.' });
+    } catch (error) {
+      await db.query('ROLLBACK');
+      console.error(error);
+      res.status(500).json({ message: 'Error removing passenger' });
+    }
+  },
+
+  // ✅ BLOCK PASSENGER (Kicks them out AND blacklists them)
+  blockPassenger: async (req, res) => {
+    try {
+      const { id: rideId } = req.params;
+      const { passengerId } = req.body;
+      const hostId = req.user.id;
+
+      // 1. Verify host
+      const rideCheck = await db.query('SELECT creator_id FROM rides WHERE id = $1', [rideId]);
+      if (rideCheck.rows.length === 0 || rideCheck.rows[0].creator_id !== hostId) {
+        return res.status(403).json({ message: 'Only the host can block passengers.' });
+      }
+
+      await db.query('BEGIN');
+      
+      // 2. Add to blacklist (ON CONFLICT DO NOTHING prevents errors if already blocked)
+      await db.query(
+        'INSERT INTO blocked_passengers (ride_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [rideId, passengerId]
+      );
+
+      // 3. Remove them from the ride if they are currently in it
+      const deleteRes = await db.query(
+        'DELETE FROM ride_participants WHERE ride_id = $1 AND user_id = $2 RETURNING *',
+        [rideId, passengerId]
+      );
+
+      // 4. Refund the seat
+      if (deleteRes.rowCount > 0) {
+        await db.query(
+          "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1",
+          [rideId]
+        );
+      }
+      
+      await db.query('COMMIT');
+      res.status(200).json({ message: 'Passenger blocked successfully.' });
+    } catch (error) {
+      await db.query('ROLLBACK');
+      console.error(error);
+      res.status(500).json({ message: 'Error blocking passenger' });
     }
   },
 

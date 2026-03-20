@@ -23,6 +23,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
   List<dynamic> _participants = [];
   String _driverPhone = "";
   String _currentUserId = ""; // NEW: Track who is looking at the app
+  bool _isHost = false;
   bool _isLoading = true;
 
   @override
@@ -50,6 +51,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
             _rideData = data['ride'];
             _driverPhone = data['ride']['creator_phone'] ?? "";
             _participants = data['participants'];
+            _isHost = (_currentUserId == data['ride']['creator_id'].toString());
             _isLoading = false;
           });
         }
@@ -215,6 +217,113 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ✅ REMOVE PASSENGER
+  Future<void> _removePassenger(
+    String passengerId,
+    String passengerName,
+  ) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Remove Passenger"),
+        content: Text(
+          "Are you sure you want to remove $passengerName from this ride? They will be able to rejoin if seats are available.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF59E0B),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Remove"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final response = await ApiService.postRequest(
+        '/rides/${widget.rideId}/remove',
+        {"passengerId": passengerId},
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("$passengerName removed.")));
+        _fetchData(); // ✅ use your existing function
+      } else {
+        final error = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error['message'] ?? 'Failed to remove')),
+        );
+      }
+    } catch (e) {
+      debugPrint("Remove error: $e");
+    }
+  }
+
+  // ✅ BLOCK PASSENGER
+  Future<void> _blockPassenger(String passengerId, String passengerName) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          "Block Passenger",
+          style: TextStyle(color: Colors.red),
+        ),
+        content: Text(
+          "Are you sure you want to completely block $passengerName? They will be kicked out and permanently hidden from this ride.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              "Block Permanently",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final response = await ApiService.postRequest(
+        '/rides/${widget.rideId}/block',
+        {"passengerId": passengerId},
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("$passengerName has been blocked.")),
+        );
+        _fetchData(); // ✅ use your existing function
+      } else {
+        final error = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error['message'] ?? 'Failed to block')),
+        );
+      }
+    } catch (e) {
+      debugPrint("Block error: $e");
     }
   }
 
@@ -431,14 +540,92 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                           const SizedBox(height: 12),
 
                           ..._participants.map((p) {
-                            final bool isThisUserHost =
-                                p['id'] == _rideData?['creator_id'];
+                            final String passengerId = p['id'].toString();
+                            final String passengerName = p['name'] ?? 'Unknown';
 
-                            return _memberTile(
-                              name: p['name'],
-                              role: isThisUserHost ? "Host" : "Member",
-                              seat: "1 seat",
-                              host: isThisUserHost,
+                            final bool isThisPassengerTheHost =
+                                passengerId ==
+                                _rideData?['creator_id'].toString();
+
+                            return ListTile(
+                              leading: const CircleAvatar(
+                                backgroundColor: Color(0xFFDCE7EE),
+                                child: Icon(
+                                  Icons.person,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                              title: Text(
+                                passengerName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Text(
+                                isThisPassengerTheHost ? "Host" : "Passenger",
+                              ),
+
+                              // 👇 HOST CONTROLS
+                              trailing: (_isHost && !isThisPassengerTheHost)
+                                  ? PopupMenuButton<String>(
+                                      icon: const Icon(
+                                        Icons.more_vert,
+                                        color: Color(0xFF6B7280),
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      onSelected: (value) {
+                                        if (value == 'remove') {
+                                          _removePassenger(
+                                            passengerId,
+                                            passengerName,
+                                          );
+                                        } else if (value == 'block') {
+                                          _blockPassenger(
+                                            passengerId,
+                                            passengerName,
+                                          );
+                                        }
+                                      },
+                                      itemBuilder: (BuildContext context) => [
+                                        const PopupMenuItem<String>(
+                                          value: 'remove',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.person_remove,
+                                                color: Color(0xFFF59E0B),
+                                                size: 20,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text('Remove'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem<String>(
+                                          value: 'block',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.block,
+                                                color: Colors.red,
+                                                size: 20,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Block',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : null,
                             );
                           }),
 
@@ -657,92 +844,90 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
     );
   }
 
- Widget _bottomNavBar() {
-  return Container(
-    height: 80,
-    padding: const EdgeInsets.symmetric(horizontal: 20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(.05),
-          blurRadius: 10,
-          offset: const Offset(0, -3),
-        ),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // HOME
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const HomePage()),
-            );
-          },
-          child: _NavItem(icon: Icons.home, label: "Home", active: false),
-        ),
-
-        // RIDES
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MyRidesPage()),
-            );
-          },
-          child: _NavItem(icon: Icons.history, label: "Rides"),
-        ),
-
-        // ADD RIDE
-        GestureDetector(
-          onTap: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CreateRidePage(),
-              ),
-            );
-            if (result == true) _fetchData();
-          },
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-              color: Color(0xFF2F80ED),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.add, color: Colors.white),
+  Widget _bottomNavBar() {
+    return Container(
+      height: 80,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.05),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
           ),
-        ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // HOME
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HomePage()),
+              );
+            },
+            child: _NavItem(icon: Icons.home, label: "Home", active: false),
+          ),
 
-        // MAP
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MapPage()),
-            );
-          },
-          child: _NavItem(icon: Icons.map, label: "Map"),
-        ),
+          // RIDES
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyRidesPage()),
+              );
+            },
+            child: _NavItem(icon: Icons.history, label: "Rides"),
+          ),
 
-        // PROFILE
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfilePage()),
-            );
-          },
-          child: _NavItem(icon: Icons.person_outline, label: "Profile"),
-        ),
-      ],
-    ),
-  );
-}
+          // ADD RIDE
+          GestureDetector(
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreateRidePage()),
+              );
+              if (result == true) _fetchData();
+            },
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                color: Color(0xFF2F80ED),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+          ),
+
+          // MAP
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MapPage()),
+              );
+            },
+            child: _NavItem(icon: Icons.map, label: "Map"),
+          ),
+
+          // PROFILE
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfilePage()),
+              );
+            },
+            child: _NavItem(icon: Icons.person_outline, label: "Profile"),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _NavItem extends StatelessWidget {

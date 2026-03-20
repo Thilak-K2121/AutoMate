@@ -37,7 +37,17 @@ pool.query(`
   ALTER TABLE notifications ADD COLUMN IF NOT EXISTS ride_id UUID REFERENCES rides(id) ON DELETE CASCADE;
 `).then(() => console.log("✅ Notifications table verified with ride_id!"))
   .catch(err => console.error("Database table creation error:", err));
-
+// 🚨 ADD THIS to your forced creation block in db.js
+pool.query(`
+  CREATE TABLE IF NOT EXISTS blocked_passengers (
+      id SERIAL PRIMARY KEY,
+      ride_id UUID REFERENCES rides(id) ON DELETE CASCADE,
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(ride_id, user_id)
+  );
+`).then(() => console.log("✅ Blocked Passengers table verified!"))
+  .catch(err => console.error("Database table creation error:", err));
 module.exports = {
   query: (text, params) => pool.query(text, params),
 };
