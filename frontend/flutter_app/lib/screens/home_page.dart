@@ -409,7 +409,7 @@ class _HomePageState extends State<HomePage> {
                           isFemaleOnlyRaw.toString().toLowerCase() == "true";
 
                       final String creatorId =
-                          ride['user_id']?.toString() ?? '';
+                          ride['creator_id']?.toString() ?? '';
                       final bool isMyRide = creatorId == _userId;
                       final bool isActiveJoinedRide =
                           ride['id'].toString() == _activeRideId;
