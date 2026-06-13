@@ -1,3 +1,7 @@
+File Name: init.sql
+Location: database/init.sql
+--------------------------------------------------
+
 -- Enable UUID extension for secure, unique IDs
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -45,7 +49,7 @@ CREATE TABLE messages (
 
 CREATE TABLE notifications (
     id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE, -- CHANGED FROM INTEGER TO UUID
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     icon_type VARCHAR(50) DEFAULT 'person',
