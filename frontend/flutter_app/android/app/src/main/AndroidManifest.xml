@@ -5,7 +5,7 @@
         </intent>
     </queries>
     <application
-        android:label="flutter_app"
+        android:label="AutoMate"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
