@@ -37,9 +37,9 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/images/auto_icon(1)(1).png"
+  image_path: "assets/images/auto_icon(1) (1).png"
   adaptive_icon_background: "#ffffff" # Keeps the background a clean white
-  adaptive_icon_foreground: "assets/images/auto_icon(1)(1).png"
+  adaptive_icon_foreground: "assets/images/auto_icon(1) (1).png"
 
 flutter_native_splash:
   color: "#ffffff"
