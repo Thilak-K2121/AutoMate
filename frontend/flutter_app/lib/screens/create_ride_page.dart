@@ -136,16 +136,6 @@ class _CreateRidePageState extends State<CreateRidePage> {
       backgroundColor: const Color(0xFFF3F6F9),
       body: Stack(
         children: [
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Image.asset(
-              "assets/images/bg_waves.png",
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const SizedBox(),
-            ),
-          ),
           SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

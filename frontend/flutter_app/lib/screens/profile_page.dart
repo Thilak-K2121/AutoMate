@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'ride_history_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'sign_in_page.dart';
 import 'home_page.dart';
 import 'my_rides_page.dart';
@@ -102,6 +103,67 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     }
   }
+  void _showHelpDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text("Help & Support"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("   Developer: Thilak K"),
+            // const SizedBox(height: 10),
+            TextButton(
+              onPressed: () async {
+  final Uri emailLaunchUri = Uri(
+    scheme: 'mailto',
+    path: 'thilak.k@bmsce.ac.in',
+    queryParameters: {
+    'subject': 'AutoMate Support Request',
+  },
+  );
+
+  try {
+    await launchUrl(
+      emailLaunchUri,
+      mode: LaunchMode.externalApplication,
+    );
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No email application installed on this device.',
+          ),
+        ),
+      );
+    }
+  }
+},
+              child: const Text("thilak.k@bmsce.ac.in"),
+            ), // Update with your actual email
+                        const SizedBox(height: 20),
+            const Divider(),
+            const Center(
+              child: Text(
+                "Made with ❤️ in Bengaluru",
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -224,6 +286,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     _menuTile(
                       icon: Icons.help_outline,
                       title: "Help & Support",
+                      onTap: () => _showHelpDialog(context),
                     ),
                     _menuTile(
                       icon: Icons.logout,
