@@ -1,26 +1,37 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+// Check if Render provided a DATABASE_URL.
+// If yes, use it with SSL.
+// Otherwise use local Docker/Postgres settings.
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    }
+  : {
+      user: process.env.DB_USER || 'postgres',
+      host: process.env.DB_HOST || 'localhost',
+      database: process.env.DB_NAME || 'autoride',
+      password: process.env.DB_PASSWORD || 'postgres',
+      port: process.env.DB_PORT || 5432,
+    };
+
 // Create a new PostgreSQL connection pool
-const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost', // Docker will override this later
-  database: process.env.DB_NAME || 'autoride',
-  password: process.env.DB_PASSWORD || 'postgres',
-  port: process.env.DB_PORT || 5432,
-});
+const pool = new Pool(poolConfig);
 
 // Test the connection
 pool.on('connect', () => {
-  console.log('Connected to the PostgreSQL database');
+  console.log('✅ Connected to the PostgreSQL database');
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle database client', err);
+  console.error('❌ Unexpected error on idle database client', err);
   process.exit(-1);
 });
 
-// 🚨 FORCE CREATE THE TABLE AND ADD RIDE_ID
 // 🚨 FORCE CREATE THE TABLE AND ADD RIDE_ID
 pool.query(`
   CREATE TABLE IF NOT EXISTS notifications (
@@ -32,12 +43,14 @@ pool.query(`
       is_read BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
-  
-  -- 👇 FIXED: Changed INTEGER to UUID to match your rides table!
-  ALTER TABLE notifications ADD COLUMN IF NOT EXISTS ride_id UUID REFERENCES rides(id) ON DELETE CASCADE;
-`).then(() => console.log("✅ Notifications table verified with ride_id!"))
-  .catch(err => console.error("Database table creation error:", err));
-// 🚨 ADD THIS to your forced creation block in db.js
+
+  ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS ride_id UUID REFERENCES rides(id) ON DELETE CASCADE;
+`)
+.then(() => console.log("✅ Notifications table verified with ride_id!"))
+.catch(err => console.error("Database table creation error:", err));
+
+// 🚨 CREATE BLOCKED PASSENGERS TABLE
 pool.query(`
   CREATE TABLE IF NOT EXISTS blocked_passengers (
       id SERIAL PRIMARY KEY,
@@ -46,17 +59,18 @@ pool.query(`
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(ride_id, user_id)
   );
-`).then(() => console.log("✅ Blocked Passengers table verified!"))
-  .catch(err => console.error("Database table creation error:", err));
+`)
+.then(() => console.log("✅ Blocked Passengers table verified!"))
+.catch(err => console.error("Database table creation error:", err));
 
-  // 🚨 ADD THIS to your forced creation block in db.js
+// 🚨 ADD PAYMENT MODE COLUMN TO RIDES
 pool.query(`
-  -- 👇 NEW: Add payment mode to rides table
-  ALTER TABLE rides ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(20) DEFAULT 'Any';
-`).then(() => console.log("✅ Payment Mode column verified!"))
-  .catch(err => console.error("Database table creation error:", err));
+  ALTER TABLE rides
+  ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(20) DEFAULT 'Any';
+`)
+.then(() => console.log("✅ Payment Mode column verified!"))
+.catch(err => console.error("Database table creation error:", err));
 
-  
 module.exports = {
   query: (text, params) => pool.query(text, params),
 };
