@@ -546,6 +546,36 @@ if (hostingCheck.rows.length > 0) {
       res.status(500).json({ message: 'Server error fetching my rides' });
     }
   }
+  ,
+
+// ✅ GET COMPLETED RIDE HISTORY
+getRideHistory: async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Fetch completed rides where user was creator or participant
+    const result = await db.query(
+      `SELECT r.*, u.name as creator_name
+       FROM rides r
+       JOIN users u ON r.creator_id = u.id
+       LEFT JOIN ride_participants rp ON r.id = rp.ride_id
+       WHERE (r.creator_id = $1 OR rp.user_id = $1)
+       AND r.status = 'completed'
+       ORDER BY r.created_at DESC`,
+      [userId]
+    );
+
+    res.status(200).json({
+      history: result.rows
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: 'Server error fetching history'
+    });
+  }
+}
 };
 
 

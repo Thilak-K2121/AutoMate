@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
+import 'dart:convert';
+import '../services/api_service.dart';
 
 class RideHistoryPage extends StatefulWidget {
   const RideHistoryPage({super.key});
@@ -10,6 +12,42 @@ class RideHistoryPage extends StatefulWidget {
 }
 
 class _RideHistoryPageState extends State<RideHistoryPage> {
+
+  List<dynamic> _historyRides = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHistory();
+  }
+
+  Future<void> _fetchHistory() async {
+    try {
+      final response =
+          await ApiService.getRequest('/rides/history');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          _historyRides = data['history'];
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching ride history: $e');
+
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,32 +114,35 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
 
                   /// Ride list (Static placeholders matching your UI)
                   Expanded(
-                    child: ListView(
-                      children: [
-                        _rideHistoryCard(
-                          title: "Metro Ride",
-                          location: "Gate 2 → Metro Station",
-                          date: "Today • 8:30 AM",
-                          price: "₹15",
-                          status: "Completed",
-                        ),
-                        _rideHistoryCard(
-                          title: "College Ride",
-                          location: "Metro → College Campus",
-                          date: "Yesterday • 9:10 AM",
-                          price: "₹12",
-                          status: "Completed",
-                        ),
-                        _rideHistoryCard(
-                          title: "Metro Ride",
-                          location: "Gate 1 → Metro Station",
-                          date: "Sep 18 • 8:25 AM",
-                          price: "₹15",
-                          status: "Completed",
-                        ),
-                      ],
-                    ),
-                  ),
+  child: _isLoading
+      ? const Center(
+          child: CircularProgressIndicator(),
+        )
+      : _historyRides.isEmpty
+          ? const Center(
+              child: Text(
+                "No completed rides found",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+              ),
+            )
+          : ListView.builder(
+              itemCount: _historyRides.length,
+              itemBuilder: (context, index) {
+                final ride = _historyRides[index];
+
+                return _rideHistoryCard(
+                  title: ride['destination'] ?? 'Ride',
+                  location: ride['meeting_point'] ?? '',
+                  date: ride['created_at'] ?? '',
+                  price: "Completed",
+                  status: ride['status'] ?? 'completed',
+                );
+              },
+            ),
+),
                 ],
               ),
             ),

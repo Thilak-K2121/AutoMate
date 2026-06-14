@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import 'ride_history_page.dart';
 import 'sign_in_page.dart';
 import 'home_page.dart';
+import 'my_rides_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -207,19 +208,19 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 26),
 
                     /// Menu Options
-                    _menuTile(
-                      icon: Icons.history,
-                      title: "Ride History",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RideHistoryPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    _menuTile(icon: Icons.star_border, title: "Saved Rides"),
+                   _menuTile(
+  icon: Icons.history,
+  title: "Ride History",
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        // Change this from RideHistoryPage() to MyRidesPage()
+        builder: (context) => const MyRidesPage(), 
+      ),
+    );
+  },
+),
                     _menuTile(
                       icon: Icons.help_outline,
                       title: "Help & Support",

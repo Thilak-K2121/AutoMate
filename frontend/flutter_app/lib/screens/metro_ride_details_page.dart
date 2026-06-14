@@ -708,18 +708,24 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                           /// Buttons Area
                           /// Buttons Area
                           Builder(
-                            builder: (context) {
-                              // Determine the user's exact relationship to this ride
-                              final bool isHost =
-                                  _currentUserId == _rideData?['creator_id'];
-                              final bool isParticipant = _participants.any(
-                                (p) => p['id'] == _currentUserId,
-                              );
-                              final bool isFull =
-                                  (_rideData?['seats_available'] ?? 0) <= 0;
+  builder: (context) {
+    // Determine the user's exact relationship to this ride
+    final bool isHost =
+        _currentUserId == _rideData?['creator_id'];
+
+    final bool isParticipant = _participants.any(
+      (p) => p['id'].toString() == _currentUserId.toString(),
+    );
+
+    final bool isFull =
+        (_rideData?['seats_available'] ?? 0) <= 0;
+
+    final bool isCompleted =
+        _rideData?['status'] == 'completed' ||
+        _rideData?['status'] == 'cancelled';
 
                               // 1. NON-PARTICIPANT VIEW: Only show the "Join" button (Full width)
-                              if (!isHost && !isParticipant) {
+                              if (!isCompleted && !isHost && !isParticipant) {
                                 return GestureDetector(
                                   onTap: isFull ? null : _handleJoinRide,
                                   child: _actionButton(
@@ -732,90 +738,98 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                               }
 
                               // 2. HOST & PARTICIPANT VIEW: Show the unlocked control panel
-                              return Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      // LEFT BUTTON: Chat (Always visible for members)
-                                      Expanded(
-                                        child: GestureDetector(
-                                          onTap: () => Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => ChatPage(
-                                                rideId: widget.rideId,
-                                              ),
-                                            ),
-                                          ),
-                                          child: _actionButton(
-                                            "Chat",
-                                            const Color(0xFF34A853),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 14),
+                              if (!isCompleted && (isHost || isParticipant)) {
+  return Column(
+    children: [
+      Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+             onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatPage(
+                      rideId: widget.rideId,
+                    ),
+                  ),
+                ),
+              child: _actionButton(
+                "Chat",
+                isCompleted
+                    ? Colors.grey
+                    : const Color(0xFF34A853),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
 
-                                      // RIGHT BUTTON: End Ride (Host) OR Call Host (Participant)
-                                      Expanded(
-                                        child: isHost
-                                            ? GestureDetector(
-                                                onTap: _handleEndRide,
-                                                child: _actionButton(
-                                                  "End Ride",
-                                                  Colors.red.shade500,
-                                                ),
-                                              )
-                                            : GestureDetector(
-                                                // Must be a participant here
-                                                onTap: () =>
-                                                    _driverPhone.isNotEmpty
-                                                    ? _makePhoneCall(
-                                                        _driverPhone,
-                                                      )
-                                                    : null,
-                                                child: _actionButton(
-                                                  "Call Host",
-                                                  _driverPhone.isNotEmpty
-                                                      ? const Color(0xFF2F80ED)
-                                                      : Colors.grey,
-                                                ),
-                                              ),
-                                      ),
-                                    ],
-                                  ),
+          Expanded(
+            child: isHost
+                ? GestureDetector(
+                    onTap: _handleEndRide,
+                    child: _actionButton(
+                      "End Ride",
+                      Colors.red.shade500,
+                    ),
+                  )
+                : GestureDetector(
+                    onTap: () => _driverPhone.isNotEmpty
+                        ? _makePhoneCall(_driverPhone)
+                        : null,
+                    child: _actionButton(
+                      "Call Host",
+                      _driverPhone.isNotEmpty
+                          ? const Color(0xFF2F80ED)
+                          : Colors.grey,
+                    ),
+                  ),
+          ),
+        ],
+      ),
 
-                                  // 3. BOTTOM BUTTON (Leave Ride - only for participants who aren't the host)
-                                  if (isParticipant && !isHost) ...[
-                                    const SizedBox(height: 14),
-                                    GestureDetector(
-                                      onTap: _handleLeaveRide,
-                                      child: Container(
-                                        width: double.infinity,
-                                        height: 50,
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                            color: Colors.red.shade400,
-                                            width: 1.5,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            28,
-                                          ),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            "Leave Ride",
-                                            style: TextStyle(
-                                              color: Colors.red.shade500,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              );
+      if (isParticipant && !isHost) ...[
+        const SizedBox(height: 14),
+        GestureDetector(
+          onTap: _handleLeaveRide,
+          child: Container(
+            width: double.infinity,
+            height: 50,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Colors.red,
+                width: 1.5,
+              ),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Center(
+              child: Text(
+                "Leave Ride",
+                style: TextStyle(
+                  color: Colors.red.shade500,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
+return const Padding(
+  padding: EdgeInsets.all(16.0),
+  child: Center(
+    child: Text(
+      "This ride is completed.",
+      style: TextStyle(
+        color: Colors.grey,
+        fontSize: 16,
+      ),
+    ),
+  ),
+);
                             },
                           ),
 

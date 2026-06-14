@@ -16,5 +16,6 @@ router.post('/end', rideController.endRide);
 router.post('/:id/remove', rideController.removePassenger);
 router.post('/:id/block', rideController.blockPassenger);
 router.get('/:id', rideController.getRideDetails);
+router.get('/history', rideController.getRideHistory);
 
 module.exports = router;
