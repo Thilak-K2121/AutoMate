@@ -60,7 +60,7 @@ class _ChatPageState extends State<ChatPage> {
   void _connectSocket() {
     // Note: Use your IP or 10.0.2.2 for Android Emulator
     _socket = IO.io(
-      ApiService.baseUrl,
+      ApiService.socketUrl, // FIXED: Use socketUrl instead of baseUrl
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()

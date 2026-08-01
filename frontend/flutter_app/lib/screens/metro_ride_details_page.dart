@@ -463,106 +463,69 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                   const SizedBox(height: 16),
 
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          /// Meeting point + status
-                          /// Meeting point + status
-                          Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: _cardDecoration(),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.location_on,
-                                      color: Color(0xFF34A853),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    const Text(
-                                      "Meeting Point",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    const Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 16,
-                                      color: Color(0xFF9CA3AF),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    _rideData?['meeting_point'] ?? "Loading...",
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-
-                                const Divider(height: 26),
-
-                                /// STATUS ROW
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.access_time,
-                                      color: Color(0xFF6B7280),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    const Text(
-                                      "Status:",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE9F7EF),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: Text(
-                                        (_rideData?['status'] ?? "Unknown")
-                                            .toString()
-                                            .toUpperCase(),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF34A853),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                /// 🔥 NEW: FEMALE ONLY BADGE
-                                if (_rideData?['female_only'] == true ||
-                                    _rideData?['female_only'] == 'true' ||
-                                    _rideData?['female_only'] == 1) ...[
-                                  const Divider(height: 26),
+                    child: RefreshIndicator(
+                      onRefresh: _fetchData,
+                      color: const Color(0xFF34A853),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            /// Meeting point + status
+                            /// Meeting point + status
+                            Container(
+                              padding: const EdgeInsets.all(18),
+                              decoration: _cardDecoration(),
+                              child: Column(
+                                children: [
                                   Row(
                                     children: [
                                       const Icon(
-                                        Icons.security,
-                                        color: Colors.pink,
+                                        Icons.location_on,
+                                        color: Color(0xFF34A853),
                                       ),
                                       const SizedBox(width: 10),
                                       const Text(
-                                        "Security:",
+                                        "Meeting Point",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      const Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16,
+                                        color: Color(0xFF9CA3AF),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      _rideData?['meeting_point'] ??
+                                          "Loading...",
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+
+                                  const Divider(height: 26),
+
+                                  /// STATUS ROW
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.access_time,
+                                        color: Color(0xFF6B7280),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      const Text(
+                                        "Status:",
                                         style: TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 15,
@@ -575,269 +538,326 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                                           vertical: 8,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.pink.shade50,
+                                          color: const Color(0xFFE9F7EF),
                                           borderRadius: BorderRadius.circular(
                                             14,
                                           ),
-                                          border: Border.all(
-                                            color: Colors.pink.shade200,
-                                          ),
                                         ),
-                                        child: const Text(
-                                          "FEMALE ONLY",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.pink,
-                                            fontSize: 12,
+                                        child: Text(
+                                          (_rideData?['status'] ?? "Unknown")
+                                              .toString()
+                                              .toUpperCase(),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF34A853),
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                ],
-                              ],
-                            ),
-                          ),
 
-                          const SizedBox(height: 22),
-
-                          /// Members
-                          const Text(
-                            "Group Members",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1F2937),
-                            ),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          ..._participants.map((p) {
-                            final String passengerId = p['id'].toString();
-                            final String passengerName = p['name'] ?? 'Unknown';
-
-                            final bool isThisPassengerTheHost =
-                                passengerId ==
-                                _rideData?['creator_id'].toString();
-
-                            return ListTile(
-                              leading: const CircleAvatar(
-                                backgroundColor: Color(0xFFDCE7EE),
-                                child: Icon(
-                                  Icons.person,
-                                  color: Color(0xFF6B7280),
-                                ),
-                              ),
-                              title: Text(
-                                passengerName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              subtitle: Text(
-                                isThisPassengerTheHost ? "Host" : "Passenger",
-                              ),
-
-                              // 👇 HOST CONTROLS
-                              trailing: (_isHost && !isThisPassengerTheHost)
-                                  ? PopupMenuButton<String>(
-                                      icon: const Icon(
-                                        Icons.more_vert,
-                                        color: Color(0xFF6B7280),
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      onSelected: (value) {
-                                        if (value == 'remove') {
-                                          _removePassenger(
-                                            passengerId,
-                                            passengerName,
-                                          );
-                                        } else if (value == 'block') {
-                                          _blockPassenger(
-                                            passengerId,
-                                            passengerName,
-                                          );
-                                        }
-                                      },
-                                      itemBuilder: (BuildContext context) => [
-                                        const PopupMenuItem<String>(
-                                          value: 'remove',
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.person_remove,
-                                                color: Color(0xFFF59E0B),
-                                                size: 20,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text('Remove'),
-                                            ],
+                                  /// 🔥 NEW: FEMALE ONLY BADGE
+                                  if (_rideData?['female_only'] == true ||
+                                      _rideData?['female_only'] == 'true' ||
+                                      _rideData?['female_only'] == 1) ...[
+                                    const Divider(height: 26),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.security,
+                                          color: Colors.pink,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        const Text(
+                                          "Security:",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15,
                                           ),
                                         ),
-                                        const PopupMenuItem<String>(
-                                          value: 'block',
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.block,
-                                                color: Colors.red,
-                                                size: 20,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Block',
-                                                style: TextStyle(
-                                                  color: Colors.red,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
+                                        const Spacer(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.pink.shade50,
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.pink.shade200,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            "FEMALE ONLY",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.pink,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
                                       ],
-                                    )
-                                  : null,
-                            );
-                          }),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
 
-                          const SizedBox(height: 30),
+                            const SizedBox(height: 22),
 
-                          /// Buttons Area
-                          /// Buttons Area
-                          Builder(
-  builder: (context) {
-    // Determine the user's exact relationship to this ride
-    final bool isHost =
-        _currentUserId == _rideData?['creator_id'];
+                            /// Members
+                            const Text(
+                              "Group Members",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
 
-    final bool isParticipant = _participants.any(
-      (p) => p['id'].toString() == _currentUserId.toString(),
-    );
+                            const SizedBox(height: 12),
 
-    final bool isFull =
-        (_rideData?['seats_available'] ?? 0) <= 0;
+                            ..._participants.map((p) {
+                              final String passengerId = p['id'].toString();
+                              final String passengerName =
+                                  p['name'] ?? 'Unknown';
 
-    final bool isCompleted =
-        _rideData?['status'] == 'completed' ||
-        _rideData?['status'] == 'cancelled';
+                              final bool isThisPassengerTheHost =
+                                  passengerId ==
+                                  _rideData?['creator_id'].toString();
 
-                              // 1. NON-PARTICIPANT VIEW: Only show the "Join" button (Full width)
-                              if (!isCompleted && !isHost && !isParticipant) {
-                                return GestureDetector(
-                                  onTap: isFull ? null : _handleJoinRide,
-                                  child: _actionButton(
-                                    isFull ? "Ride Full" : "Join Ride",
-                                    isFull
-                                        ? Colors.grey
-                                        : const Color(0xFF34A853),
+                              return ListTile(
+                                leading: const CircleAvatar(
+                                  backgroundColor: Color(0xFFDCE7EE),
+                                  child: Icon(
+                                    Icons.person,
+                                    color: Color(0xFF6B7280),
+                                  ),
+                                ),
+                                title: Text(
+                                  passengerName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  isThisPassengerTheHost ? "Host" : "Passenger",
+                                ),
+
+                                // 👇 HOST CONTROLS
+                                trailing: (_isHost && !isThisPassengerTheHost)
+                                    ? PopupMenuButton<String>(
+                                        icon: const Icon(
+                                          Icons.more_vert,
+                                          color: Color(0xFF6B7280),
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        onSelected: (value) {
+                                          if (value == 'remove') {
+                                            _removePassenger(
+                                              passengerId,
+                                              passengerName,
+                                            );
+                                          } else if (value == 'block') {
+                                            _blockPassenger(
+                                              passengerId,
+                                              passengerName,
+                                            );
+                                          }
+                                        },
+                                        itemBuilder: (BuildContext context) => [
+                                          const PopupMenuItem<String>(
+                                            value: 'remove',
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.person_remove,
+                                                  color: Color(0xFFF59E0B),
+                                                  size: 20,
+                                                ),
+                                                SizedBox(width: 8),
+                                                Text('Remove'),
+                                              ],
+                                            ),
+                                          ),
+                                          const PopupMenuItem<String>(
+                                            value: 'block',
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.block,
+                                                  color: Colors.red,
+                                                  size: 20,
+                                                ),
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  'Block',
+                                                  style: TextStyle(
+                                                    color: Colors.red,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : null,
+                              );
+                            }),
+
+                            const SizedBox(height: 30),
+
+                            /// Buttons Area
+                            /// Buttons Area
+                            Builder(
+                              builder: (context) {
+                                // Determine the user's exact relationship to this ride
+                                final bool isHost =
+                                    _currentUserId == _rideData?['creator_id'];
+
+                                final bool isParticipant = _participants.any(
+                                  (p) =>
+                                      p['id'].toString() ==
+                                      _currentUserId.toString(),
+                                );
+
+                                final bool isFull =
+                                    (_rideData?['seats_available'] ?? 0) <= 0;
+
+                                final bool isCompleted =
+                                    _rideData?['status'] == 'completed' ||
+                                    _rideData?['status'] == 'cancelled';
+
+                                // 1. NON-PARTICIPANT VIEW: Only show the "Join" button (Full width)
+                                if (!isCompleted && !isHost && !isParticipant) {
+                                  return GestureDetector(
+                                    onTap: isFull ? null : _handleJoinRide,
+                                    child: _actionButton(
+                                      isFull ? "Ride Full" : "Join Ride",
+                                      isFull
+                                          ? Colors.grey
+                                          : const Color(0xFF34A853),
+                                    ),
+                                  );
+                                }
+
+                                // 2. HOST & PARTICIPANT VIEW: Show the unlocked control panel
+                                if (!isCompleted && (isHost || isParticipant)) {
+                                  return Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: GestureDetector(
+                                              onTap: () => Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      ChatPage(
+                                                        rideId: widget.rideId,
+                                                      ),
+                                                ),
+                                              ),
+                                              child: _actionButton(
+                                                "Chat",
+                                                isCompleted
+                                                    ? Colors.grey
+                                                    : const Color(0xFF34A853),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 14),
+
+                                          Expanded(
+                                            child: isHost
+                                                ? GestureDetector(
+                                                    onTap: _handleEndRide,
+                                                    child: _actionButton(
+                                                      "End Ride",
+                                                      Colors.red.shade500,
+                                                    ),
+                                                  )
+                                                : GestureDetector(
+                                                    onTap: () =>
+                                                        _driverPhone.isNotEmpty
+                                                        ? _makePhoneCall(
+                                                            _driverPhone,
+                                                          )
+                                                        : null,
+                                                    child: _actionButton(
+                                                      "Call Host",
+                                                      _driverPhone.isNotEmpty
+                                                          ? const Color(
+                                                              0xFF2F80ED,
+                                                            )
+                                                          : Colors.grey,
+                                                    ),
+                                                  ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      if (isParticipant && !isHost) ...[
+                                        const SizedBox(height: 14),
+                                        GestureDetector(
+                                          onTap: _handleLeaveRide,
+                                          child: Container(
+                                            width: double.infinity,
+                                            height: 50,
+                                            decoration: BoxDecoration(
+                                              border: Border.all(
+                                                color: Colors.red,
+                                                width: 1.5,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(28),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                "Leave Ride",
+                                                style: TextStyle(
+                                                  color: Colors.red.shade500,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  );
+                                }
+
+                                return const Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: Center(
+                                    child: Text(
+                                      "This ride is completed.",
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                                   ),
                                 );
-                              }
+                              },
+                            ),
 
-                              // 2. HOST & PARTICIPANT VIEW: Show the unlocked control panel
-                              if (!isCompleted && (isHost || isParticipant)) {
-  return Column(
-    children: [
-      Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-             onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatPage(
-                      rideId: widget.rideId,
-                    ),
-                  ),
-                ),
-              child: _actionButton(
-                "Chat",
-                isCompleted
-                    ? Colors.grey
-                    : const Color(0xFF34A853),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-
-          Expanded(
-            child: isHost
-                ? GestureDetector(
-                    onTap: _handleEndRide,
-                    child: _actionButton(
-                      "End Ride",
-                      Colors.red.shade500,
-                    ),
-                  )
-                : GestureDetector(
-                    onTap: () => _driverPhone.isNotEmpty
-                        ? _makePhoneCall(_driverPhone)
-                        : null,
-                    child: _actionButton(
-                      "Call Host",
-                      _driverPhone.isNotEmpty
-                          ? const Color(0xFF2F80ED)
-                          : Colors.grey,
-                    ),
-                  ),
-          ),
-        ],
-      ),
-
-      if (isParticipant && !isHost) ...[
-        const SizedBox(height: 14),
-        GestureDetector(
-          onTap: _handleLeaveRide,
-          child: Container(
-            width: double.infinity,
-            height: 50,
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: Colors.red,
-                width: 1.5,
-              ),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Center(
-              child: Text(
-                "Leave Ride",
-                style: TextStyle(
-                  color: Colors.red.shade500,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    ],
-  );
-}
-
-return const Padding(
-  padding: EdgeInsets.all(16.0),
-  child: Center(
-    child: Text(
-      "This ride is completed.",
-      style: TextStyle(
-        color: Colors.grey,
-        fontSize: 16,
-      ),
-    ),
-  ),
-);
-                            },
-                          ),
-
-                          const SizedBox(height: 40),
-                        ],
-                      ),
-                    ),
-                  ),
+                            const SizedBox(height: 40),
+                          ],
+                        ), // Column
+                      ), // SingleChildScrollView
+                    ), // RefreshIndicator  <-- ADD THIS
+                  ), // Expanded
                 ],
               ),
       ),
@@ -952,23 +972,28 @@ return const Padding(
           // HOME
           GestureDetector(
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HomePage()),
-              );
+              Navigator.popUntil(context, (route) => route.isFirst);
             },
-            child: _NavItem(icon: Icons.home, label: "Home", active: false),
+            child: _NavItem(
+              icon: Icons.home,
+              label: "Home",
+              active: false,
+            ), // Removed const
           ),
 
           // RIDES
           GestureDetector(
             onTap: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const MyRidesPage()),
               );
             },
-            child: _NavItem(icon: Icons.history, label: "Rides"),
+            child: _NavItem(
+              icon: Icons.history,
+              label: "Rides",
+              active: false,
+            ), // Removed const
           ),
 
           // ADD RIDE
@@ -994,23 +1019,31 @@ return const Padding(
           // MAP
           GestureDetector(
             onTap: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const MapPage()),
               );
             },
-            child: _NavItem(icon: Icons.map, label: "Map"),
+            child: _NavItem(
+              icon: Icons.map,
+              label: "Map",
+              active: false,
+            ), // Removed const
           ),
 
           // PROFILE
           GestureDetector(
             onTap: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const ProfilePage()),
               );
             },
-            child: _NavItem(icon: Icons.person_outline, label: "Profile"),
+            child: _NavItem(
+              icon: Icons.person_outline,
+              label: "Profile",
+              active: false,
+            ), // Removed const
           ),
         ],
       ),

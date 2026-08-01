@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'create_ride_page.dart';
+import 'map_page.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'ride_history_page.dart';
@@ -103,67 +105,63 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     }
   }
-  void _showHelpDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text("Help & Support"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("   Developer: Thilak K"),
-            // const SizedBox(height: 10),
-            TextButton(
-              onPressed: () async {
-  final Uri emailLaunchUri = Uri(
-    scheme: 'mailto',
-    path: 'thilak.k@bmsce.ac.in',
-    queryParameters: {
-    'subject': 'AutoMate Support Request',
-  },
-  );
 
-  try {
-    await launchUrl(
-      emailLaunchUri,
-      mode: LaunchMode.externalApplication,
-    );
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No email application installed on this device.',
-          ),
-        ),
-      );
-    }
-  }
-},
-              child: const Text("thilak.k@bmsce.ac.in"),
-            ), // Update with your actual email
-                        const SizedBox(height: 20),
-            const Divider(),
-            const Center(
-              child: Text(
-                "Made with ❤️ in Bengaluru",
-                style: TextStyle(fontSize: 12),
+  void _showHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Help & Support"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("   Developer: Thilak K"),
+              TextButton(
+                onPressed: () async {
+                  final Uri emailLaunchUri = Uri(
+                    scheme: 'mailto',
+                    path: 'thilakk.cs23@bmsce.ac.in', // 👇 FIXED
+                    queryParameters: {'subject': 'AutoMate Support Request'},
+                  );
+
+                  try {
+                    await launchUrl(
+                      emailLaunchUri,
+                      mode: LaunchMode.externalApplication,
+                    );
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No email application installed.'),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text("thilakk.cs23@bmsce.ac.in"), // 👇 FIXED
               ),
+              const SizedBox(height: 20),
+              const Divider(),
+              const Center(
+                child: Text(
+                  "Made with ❤️ in Bengaluru",
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close"),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Close"),
-          ),
-        ],
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -270,19 +268,19 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 26),
 
                     /// Menu Options
-                   _menuTile(
-  icon: Icons.history,
-  title: "Ride History",
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        // Change this from RideHistoryPage() to MyRidesPage()
-        builder: (context) => const MyRidesPage(), 
-      ),
-    );
-  },
-),
+                    _menuTile(
+                      icon: Icons.history,
+                      title: "Ride History",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            // Change this from RideHistoryPage() to MyRidesPage()
+                            builder: (context) => const MyRidesPage(),
+                          ),
+                        );
+                      },
+                    ),
                     _menuTile(
                       icon: Icons.help_outline,
                       title: "Help & Support",
@@ -366,27 +364,74 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // HOME: Pops all the way back to the root (Home Page)
+          GestureDetector(
+            onTap: () {
+              Navigator.popUntil(context, (route) => route.isFirst);
+            },
+            child: _NavItem(
+              icon: Icons.home,
+              label: "Home",
+              active: false,
+            ), // Removed const
+          ),
+
+          // RIDES: Replaces current tab
           GestureDetector(
             onTap: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const HomePage()),
+                MaterialPageRoute(builder: (context) => const MyRidesPage()),
               );
             },
-            child: const _NavItem(icon: Icons.home, label: "Home"),
+            child: _NavItem(
+              icon: Icons.history,
+              label: "Rides",
+              active: false,
+            ), // Removed const
           ),
-          const _NavItem(icon: Icons.directions_car, label: "Rides"),
-          Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-              color: Color(0xFF2F80ED),
-              shape: BoxShape.circle,
+
+          // ADD RIDE
+          GestureDetector(
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreateRidePage()),
+              );
+              if (result == true) _fetchProfileStats();
+            },
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                color: Color(0xFF2F80ED),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.add, color: Colors.white),
             ),
-            child: const Icon(Icons.add, color: Colors.white),
           ),
-          const _NavItem(icon: Icons.map, label: "Map"),
-          const _NavItem(icon: Icons.person, label: "Profile", active: true),
+
+          // MAP: Replaces current tab
+          GestureDetector(
+            onTap: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const MapPage()),
+              );
+            },
+            child: _NavItem(
+              icon: Icons.map,
+              label: "Map",
+              active: false,
+            ), // Removed const
+          ),
+
+          // PROFILE: Already here
+          _NavItem(
+            icon: Icons.person,
+            label: "Profile",
+            active: true,
+          ), // Removed const
         ],
       ),
     );

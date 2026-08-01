@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api_service.dart';
 import 'create_ride_page.dart';
 import 'my_rides_page.dart';
@@ -24,11 +25,13 @@ class _HomePageState extends State<HomePage> {
   // 👇 NEW: Track the currently joined ride for the UI & Double-Booking check
   String? _activeRideId;
   String? _activeRideDest;
+  late IO.Socket _socket;
 
   @override
   void initState() {
     super.initState();
     _fetchDashboardData();
+    _setupGlobalSocket();
   }
 
   Future<void> _fetchDashboardData() async {
@@ -83,6 +86,35 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // 👇 NEW: Listen to the backend for real-time ride updates
+  void _setupGlobalSocket() {
+    _socket = IO.io(
+      ApiService.socketUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .disableAutoConnect()
+          .build(),
+    );
+
+    _socket.connect();
+
+    _socket.onConnect((_) {
+      debugPrint('HomePage connected to Socket.io for live updates');
+    });
+
+    // Listen for a 'newRide' or 'rideUpdated' event from the server
+    _socket.on('newRide', (_) {
+      debugPrint('A new ride was created! Updating UI silently...');
+      if (mounted) {
+        _fetchDashboardData(); // Silently pulls the fresh list without a loading screen!
+      }
+    });
+
+    _socket.onDisconnect(
+      (_) => debugPrint('HomePage disconnected from Socket.io'),
+    );
+  }
+
   IconData getGreetingIcon() {
     final hour = DateTime.now().hour;
 
@@ -97,6 +129,13 @@ class _HomePageState extends State<HomePage> {
     if (hour < 12) return "Good Morning";
     if (hour < 17) return "Good Afternoon";
     return "Good Evening";
+  }
+
+  @override
+  void dispose() {
+    _socket.disconnect();
+    _socket.dispose();
+    super.dispose();
   }
 
   @override
@@ -147,296 +186,303 @@ class _HomePageState extends State<HomePage> {
             ? const Center(
                 child: CircularProgressIndicator(color: Color(0xFF34A853)),
               )
-            : ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  const SizedBox(height: 8),
+            : RefreshIndicator(
+                onRefresh: _fetchDashboardData,
+                color: const Color(0xFF34A853),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
+                    const SizedBox(height: 8),
 
-                  /// HEADER
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Hi, $_userName 👋",
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1F2937),
+                    /// HEADER
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Hi, $_userName 👋",
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1F2937),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(
-                                  getGreetingIcon(),
-                                  size: 16,
-                                  color: Color(0xFF6B7280),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  getGreeting(),
-                                  style: const TextStyle(
-                                    fontSize: 14,
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    getGreetingIcon(),
+                                    size: 16,
                                     color: Color(0xFF6B7280),
-                                    fontWeight: FontWeight.w500,
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      /// Notifications
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const NotificationsPage(),
-                            ),
-                          );
-                        },
-                        child: Stack(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    getGreeting(),
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF6B7280),
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.notifications_none,
-                                size: 22,
-                                color: Color(0xFF374151),
+                            ],
+                          ),
+                        ),
+
+                        /// Notifications
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const NotificationsPage(),
                               ),
-                            ),
-                            Positioned(
-                              right: 6,
-                              top: 6,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
+                            );
+                          },
+                          child: Stack(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.notifications_none,
+                                  size: 22,
+                                  color: Color(0xFF374151),
                                 ),
                               ),
-                            ),
-                          ],
+                              Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
 
-                      const SizedBox(width: 12),
+                        const SizedBox(width: 12),
 
-                      /// Profile
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ProfilePage(),
-                            ),
-                          );
-                        },
-                        child: const CircleAvatar(
-                          radius: 20,
-                          backgroundColor: Color(0xFFDCE7EE),
-                          child: Icon(Icons.person, color: Color(0xFF6B7280)),
+                        /// Profile
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ProfilePage(),
+                              ),
+                            );
+                          },
+                          child: const CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Color(0xFFDCE7EE),
+                            child: Icon(Icons.person, color: Color(0xFF6B7280)),
+                          ),
                         ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    /// LOGO
+                    RichText(
+                      text: const TextSpan(
+                        children: [
+                          TextSpan(
+                            text: "Auto",
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF34A853),
+                            ),
+                          ),
+                          TextSpan(
+                            text: "Mate",
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF2F80ED),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
 
-                  const SizedBox(height: 18),
+                    const SizedBox(height: 18),
 
-                  /// LOGO
-                  RichText(
-                    text: const TextSpan(
+                    /// QUICK ACTIONS
+                    Row(
                       children: [
-                        TextSpan(
-                          text: "Auto",
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF34A853),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CreateRidePage(
+                                    initialDestination:
+                                        "National College Metro Station",
+                                    initialMeetingPoint: "BMSCE Gate 1",
+                                  ),
+                                ),
+                              );
+                              if (result == true) _fetchDashboardData();
+                            },
+                            child: _quickCard(
+                              icon: Icons.directions_subway,
+                              title: "Go to Metro",
+                              subtitle: "Auto-fill ride",
+                              color: const Color(0xFF34A853),
+                            ),
                           ),
                         ),
-                        TextSpan(
-                          text: "Mate",
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF2F80ED),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CreateRidePage(
+                                    initialDestination: "BMSCE Campus",
+                                    initialMeetingPoint:
+                                        "National College Metro Station",
+                                  ),
+                                ),
+                              );
+                              if (result == true) _fetchDashboardData();
+                            },
+                            child: _quickCard(
+                              icon: Icons.school,
+                              title: "Go to College",
+                              subtitle: "Auto-fill ride",
+                              color: const Color(0xFF2F80ED),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
 
-                  const SizedBox(height: 18),
+                    const SizedBox(height: 26),
 
-                  /// QUICK ACTIONS
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const CreateRidePage(
-                                  initialDestination:
-                                      "National College Metro Station",
-                                  initialMeetingPoint: "BMSCE Gate 1",
-                                ),
-                              ),
-                            );
-                            if (result == true) _fetchDashboardData();
-                          },
-                          child: _quickCard(
-                            icon: Icons.directions_subway,
-                            title: "Go to Metro",
-                            subtitle: "Auto-fill ride",
-                            color: const Color(0xFF34A853),
+                    /// SEARCH
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
+                        ],
+                      ),
+                      child: TextField(
+                        onChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                        decoration: const InputDecoration(
+                          icon: Icon(Icons.search, color: Color(0xFF9CA3AF)),
+                          hintText: "Search destinations or gates...",
+                          border: InputBorder.none,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const CreateRidePage(
-                                  initialDestination: "BMSCE Campus",
-                                  initialMeetingPoint:
-                                      "National College Metro Station",
-                                ),
-                              ),
-                            );
-                            if (result == true) _fetchDashboardData();
-                          },
-                          child: _quickCard(
-                            icon: Icons.school,
-                            title: "Go to College",
-                            subtitle: "Auto-fill ride",
-                            color: const Color(0xFF2F80ED),
-                          ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    /// HEADER
+                    const Text(
+                      "Available Rides",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    /// RIDES
+                    if (displayRides.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Text("No rides available"),
                         ),
-                      ),
-                    ],
-                  ),
+                      )
+                    else
+                      ...displayRides.map<Widget>((ride) {
+                        // ✅ ADD DEBUG HERE
+                        print(
+                          "is_female_only value: ${ride['is_female_only']}",
+                        );
+                        final bool isMetro = ride['destination']
+                            .toString()
+                            .toLowerCase()
+                            .contains('metro');
 
-                  const SizedBox(height: 26),
+                        final isFemaleOnlyRaw = ride['female_only'];
 
-                  /// SEARCH
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      onChanged: (value) =>
-                          setState(() => _searchQuery = value),
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.search, color: Color(0xFF9CA3AF)),
-                        hintText: "Search destinations or gates...",
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
+                        final bool isFemaleOnly =
+                            isFemaleOnlyRaw == true ||
+                            isFemaleOnlyRaw == 1 ||
+                            isFemaleOnlyRaw == "1" ||
+                            isFemaleOnlyRaw.toString().toLowerCase() == "true";
 
-                  const SizedBox(height: 24),
+                        final String creatorId =
+                            ride['creator_id']?.toString() ?? '';
+                        final bool isMyRide = creatorId == _userId;
+                        final bool isActiveJoinedRide =
+                            ride['id'].toString() == _activeRideId;
 
-                  /// HEADER
-                  const Text(
-                    "Available Rides",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
+                        // 👇 NEW: Extract payment mode
+                        final String paymentMode =
+                            ride['payment_mode'] ?? 'Any (Cash/UPI)';
 
-                  const SizedBox(height: 14),
+                        return _rideCard(
+                          id: ride['id'].toString(),
+                          title: ride['destination'],
+                          people: "${ride['seats_available']} seats left",
+                          gate: ride['meeting_point'],
+                          price: "",
+                          time: "Active",
+                          isMyRide: isMyRide,
+                          isFemaleOnly: isFemaleOnly,
+                          isActiveJoinedRide: isActiveJoinedRide,
+                          paymentMode: paymentMode, // 👇 NEW
+                          buttonColor: isFemaleOnly
+                              ? Colors.pink
+                              : const Color(0xFF34A853),
+                        );
+                      }),
 
-                  /// RIDES
-                  if (displayRides.isEmpty)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Text("No rides available"),
-                      ),
-                    )
-                  else
-                    ...displayRides.map<Widget>((ride) {
-                      // ✅ ADD DEBUG HERE
-                      print("is_female_only value: ${ride['is_female_only']}");
-                      final bool isMetro = ride['destination']
-                          .toString()
-                          .toLowerCase()
-                          .contains('metro');
-
-                      final isFemaleOnlyRaw = ride['female_only'];
-
-                      final bool isFemaleOnly =
-                          isFemaleOnlyRaw == true ||
-                          isFemaleOnlyRaw == 1 ||
-                          isFemaleOnlyRaw == "1" ||
-                          isFemaleOnlyRaw.toString().toLowerCase() == "true";
-
-                      final String creatorId =
-                          ride['creator_id']?.toString() ?? '';
-                      final bool isMyRide = creatorId == _userId;
-                      final bool isActiveJoinedRide =
-                          ride['id'].toString() == _activeRideId;
-
-                      // 👇 NEW: Extract payment mode
-                      final String paymentMode =
-                          ride['payment_mode'] ?? 'Any (Cash/UPI)';
-
-                      return _rideCard(
-                        id: ride['id'].toString(),
-                        title: ride['destination'],
-                        people: "${ride['seats_available']} seats left",
-                        gate: ride['meeting_point'],
-                        price: "",
-                        time: "Active",
-                        isMyRide: isMyRide,
-                        isFemaleOnly: isFemaleOnly,
-                        isActiveJoinedRide: isActiveJoinedRide,
-                        paymentMode: paymentMode, // 👇 NEW
-                        buttonColor: isFemaleOnly
-                            ? Colors.pink
-                            : const Color(0xFF34A853),
-                      );
-                    }),
-
-                  const SizedBox(height: 90),
-                ],
+                    const SizedBox(height: 90),
+                  ],
+                ),
               ),
       ),
     );

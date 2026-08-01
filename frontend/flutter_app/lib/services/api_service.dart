@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // 10.0.2.2 is the special alias for your computer's localhost in the Android Emulator
-  static const String baseUrl = 'https://automate-72vi.onrender.com/api';
+   static const String socketUrl = 'https://automate-72vi.onrender.com';
+  static const String baseUrl = '$socketUrl/api';
 
   /// GET token from local storage
   static Future<String?> getToken() async {
