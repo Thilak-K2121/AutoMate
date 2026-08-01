@@ -1,0 +1,44 @@
+File Name: docker-compose.yml
+Location: docker-compose.yml
+--------------------------------------------------
+
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_DB: autoride
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    # NEW: Add a healthcheck so Docker knows when Postgres is actually ready
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Node.js Backend
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=postgres
+      - DB_PASSWORD=your_secure_password
+      - DB_NAME=autoride
+      - JWT_SECRET=your_super_secret_jwt_key
+    depends_on:
+      db:
+        condition: service_healthy # NEW: Wait for the db healthcheck to pass
+
+volumes:
+  postgres_data:

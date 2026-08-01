@@ -1,3 +1,7 @@
+File Name: rideController.js
+Location: backend/src/controllers/rideController.js
+--------------------------------------------------
+
 const db = require('../config/db');
 const socketManager = require('../sockets/socketManager');
 
@@ -50,9 +54,6 @@ const rideController = {
       );
 
       await db.query('COMMIT');
-
-      socketManager.getIO().emit('newRide');
-
 
       res.status(201).json({
         message: 'Ride created successfully',
