@@ -396,7 +396,13 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                               );
-                              if (result == true) _fetchDashboardData();
+                              if (result == true) {
+                                setState(() {
+                                  _searchQuery = "";
+                                });
+
+                                await _fetchDashboardData();
+                              }
                             },
                             child: _quickCard(
                               icon: Icons.directions_subway,
@@ -420,7 +426,13 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                               );
-                              if (result == true) _fetchDashboardData();
+                              if (result == true) {
+                                setState(() {
+                                  _searchQuery = "";
+                                });
+
+                                await _fetchDashboardData();
+                              }
                             },
                             child: _quickCard(
                               icon: Icons.school,
@@ -487,10 +499,6 @@ class _HomePageState extends State<HomePage> {
                       )
                     else
                       ...displayRides.map<Widget>((ride) {
-                        // ✅ ADD DEBUG HERE
-                        print(
-                          "is_female_only value: ${ride['is_female_only']}",
-                        );
                         final bool isMetro = ride['destination']
                             .toString()
                             .toLowerCase()
@@ -870,7 +878,13 @@ class _HomePageState extends State<HomePage> {
                 context,
                 MaterialPageRoute(builder: (context) => const CreateRidePage()),
               );
-              if (result == true) _fetchDashboardData();
+              if (result == true) {
+                setState(() {
+                  _searchQuery = "";
+                });
+
+                await _fetchDashboardData();
+              }
             },
             child: Container(
               width: 56,

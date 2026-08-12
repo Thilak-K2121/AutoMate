@@ -239,21 +239,24 @@ if (hostingCheck.rows.length > 0) {
     );
 
     // 👇 Notification logic (UNCHANGED)
+    // Notification logic
+    // Fetch the joining user's name once and use it consistently
     const joiningUser = await db.query(
       'SELECT name FROM users WHERE id = $1',
       [userId]
     );
+
     const passengerName =
       joiningUser.rows[0]?.name?.split(' ')[0] || 'Someone';
 
     await db.query(
       `INSERT INTO notifications (user_id, ride_id, title, message, icon_type) 
-       VALUES ($1, $2, $3, $4, $5)`,
+      VALUES ($1, $2, $3, $4, $5)`,
       [
         ride.creator_id,
         rideId,
         'New Passenger!',
-        `${req.user.name || 'Someone'} joined your ride to ${ride.destination}`,
+        `${passengerName} joined your ride to ${ride.destination}`,
         'person'
       ]
     );
