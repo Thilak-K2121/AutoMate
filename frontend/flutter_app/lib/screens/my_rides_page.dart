@@ -196,7 +196,7 @@
 //                                   fontWeight: FontWeight.w700,
 //                                   color: isCompleted
 //                                       ? Colors.grey
-//                                       : const Color(0xFF34A853),
+//                                       : const Color.fromARGB(255, 168, 52, 52),
 //                                 ),
 //                               ),
 //                             ),
@@ -307,6 +307,48 @@
 //     );
 //   }
 // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -330,8 +372,8 @@ class _MyRidesPageState
   // ===========================================================================
 
   static const Color ink = Color(0xFF0B1220);
-  static const Color muted = Color(0xFF64748B);
-  static const Color mutedLight = Color(0xFF94A3B8);
+  static const Color muted = Color(0xFF475569);
+  static const Color mutedLight = Color(0xFF64748B);
 
   static const Color background = Color(0xFFF5F7FB);
   static const Color surface = Colors.white;
@@ -354,7 +396,14 @@ class _MyRidesPageState
 
   bool _isLoading = true;
 
-  late TabController _tabController;
+  TabController? _tabController;
+
+  TabController get _tabsController {
+    return _tabController ??= TabController(
+      length: 2,
+      vsync: this,
+    );
+  }
 
   // ===========================================================================
   // LIFECYCLE
@@ -364,17 +413,13 @@ class _MyRidesPageState
   void initState() {
     super.initState();
 
-    _tabController = TabController(
-      length: 2,
-      vsync: this,
-    );
-
     _fetchMyRides();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
+    _tabController = null;
     super.dispose();
   }
 
@@ -475,7 +520,7 @@ class _MyRidesPageState
                   _buildTabs(),
                   Expanded(
                     child: TabBarView(
-                      controller: _tabController,
+                      controller: _tabsController,
                       children: [
                         _buildRideList(
                           rides: _joinedRides,
@@ -548,7 +593,7 @@ class _MyRidesPageState
             'Loading your rides',
             style: TextStyle(
               color: ink,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -557,7 +602,7 @@ class _MyRidesPageState
             'Fetching your latest activity',
             style: TextStyle(
               color: muted,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -619,9 +664,9 @@ class _MyRidesPageState
                   'My rides',
                   style: TextStyle(
                     color: ink,
-                    fontSize: 26,
+                    fontSize: 28,
                     fontWeight:
-                        FontWeight.w900,
+                        FontWeight.w700,
                     letterSpacing: -.8,
                   ),
                 ),
@@ -630,7 +675,7 @@ class _MyRidesPageState
                   'Track rides you joined and hosted',
                   style: TextStyle(
                     color: muted,
-                    fontSize: 10.5,
+                    fontSize: 13,
                     fontWeight:
                         FontWeight.w500,
                   ),
@@ -670,7 +715,7 @@ class _MyRidesPageState
         horizontal: 20,
       ),
       child: Container(
-        height: 52,
+        height: 58,
         padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
           color: surfaceSoft,
@@ -681,7 +726,7 @@ class _MyRidesPageState
           ),
         ),
         child: TabBar(
-          controller: _tabController,
+          controller: _tabsController,
           dividerColor: Colors.transparent,
           indicator: BoxDecoration(
             color: surface,
@@ -703,13 +748,13 @@ class _MyRidesPageState
           unselectedLabelColor:
               mutedLight,
           labelStyle: const TextStyle(
-            fontSize: 10.5,
+            fontSize: 13,
             fontWeight:
                 FontWeight.w800,
           ),
           unselectedLabelStyle:
               const TextStyle(
-            fontSize: 10.5,
+            fontSize: 13,
             fontWeight:
                 FontWeight.w600,
           ),
@@ -721,7 +766,7 @@ class _MyRidesPageState
                 children: [
                   const Icon(
                     Icons.group_rounded,
-                    size: 15,
+                    size: 17,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -737,7 +782,7 @@ class _MyRidesPageState
                 children: [
                   const Icon(
                     Icons.add_road_rounded,
-                    size: 15,
+                    size: 17,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -879,7 +924,7 @@ class _MyRidesPageState
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: ink,
-              fontSize: 17,
+              fontSize: 19,
               fontWeight:
                   FontWeight.w900,
             ),
@@ -890,7 +935,7 @@ class _MyRidesPageState
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: muted,
-              fontSize: 11.5,
+              fontSize: 13.5,
               height: 1.5,
               fontWeight:
                   FontWeight.w500,
@@ -908,7 +953,7 @@ class _MyRidesPageState
             label: Text(
               buttonLabel,
               style: const TextStyle(
-                fontSize: 11.5,
+                fontSize: 13.5,
                 fontWeight:
                     FontWeight.w800,
               ),
@@ -995,7 +1040,7 @@ class _MyRidesPageState
     final Color accent;
 
     if (isCancelled) {
-      accent = red;
+      accent = const Color.fromARGB(255, 228, 90, 90);
     } else if (isCompleted) {
       accent = greyStatus;
     } else if (isFemaleOnly) {
@@ -1007,7 +1052,7 @@ class _MyRidesPageState
     final Color cardBorder;
 
     if (isCancelled) {
-      cardBorder = const Color(0xFFFECACA);
+      cardBorder = divider;
     } else if (isFemaleOnly && isActive) {
       cardBorder = const Color(0xFFF7D6E6);
     } else {
@@ -1124,7 +1169,7 @@ class _MyRidesPageState
                                       : isCompleted
                                           ? muted
                                           : ink,
-                              fontSize: 14.5,
+                              fontSize: 16,
                               height: 1.18,
                               fontWeight:
                                   FontWeight
@@ -1149,7 +1194,7 @@ class _MyRidesPageState
                                       : Icons
                                           .location_on_outlined,
                                   color: muted,
-                                  size: 13,
+                                  size: 15,
                                 ),
                                 const SizedBox(
                                   width: 4,
@@ -1307,7 +1352,7 @@ class _MyRidesPageState
                               style:
                                   const TextStyle(
                                 color: muted,
-                                fontSize: 9.5,
+                                fontSize: 12,
                                 fontWeight:
                                     FontWeight
                                         .w700,
@@ -1361,28 +1406,12 @@ class _MyRidesPageState
                                   .arrow_forward_rounded,
                               color:
                                   Colors.white,
-                              size: 12,
+                              size: 14,
                             ),
                           ],
                         ),
                       ),
 
-                    if (isCompleted)
-                      _smallStatusAction(
-                        icon:
-                            Icons.check_rounded,
-                        label: 'Done',
-                        color:
-                            greyStatus,
-                      ),
-
-                    if (isCancelled)
-                      _smallStatusAction(
-                        icon:
-                            Icons.close_rounded,
-                        label: 'Cancelled',
-                        color: red,
-                      ),
                   ],
                 ),
               ],
@@ -1449,7 +1478,7 @@ class _MyRidesPageState
             style:
                 TextStyle(
               color: accent,
-              fontSize: 8,
+              fontSize: 10.5,
               fontWeight:
                   FontWeight.w900,
               letterSpacing: .2,
@@ -1491,55 +1520,6 @@ class _MyRidesPageState
   }
 
   // ===========================================================================
-  // SMALL STATUS ACTION
-  // ===========================================================================
-
-  Widget _smallStatusAction({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 8,
-      ),
-      decoration:
-          BoxDecoration(
-        color:
-            color.withOpacity(.07),
-        borderRadius:
-            BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize:
-            MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 12,
-          ),
-          const SizedBox(
-            width: 5,
-          ),
-          Text(
-            label,
-            style:
-                TextStyle(
-              color: color,
-              fontSize: 9,
-              fontWeight:
-                  FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ===========================================================================
   // RIDE META
   // ===========================================================================
 
@@ -1566,7 +1546,7 @@ class _MyRidesPageState
           child: Icon(
             icon,
             color: color,
-            size: 15,
+            size: 17,
           ),
         ),
 
@@ -1588,7 +1568,7 @@ class _MyRidesPageState
                 style:
                     const TextStyle(
                   color: mutedLight,
-                  fontSize: 7.5,
+                  fontSize: 10.5,
                   fontWeight:
                       FontWeight.w700,
                 ),
@@ -1604,7 +1584,7 @@ class _MyRidesPageState
                 style:
                     const TextStyle(
                   color: ink,
-                  fontSize: 9.5,
+                  fontSize: 12,
                   fontWeight:
                       FontWeight.w800,
                 ),
