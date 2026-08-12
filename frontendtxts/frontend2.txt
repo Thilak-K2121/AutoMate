@@ -1,10 +1,14 @@
+File Name: api_service.dart
+Location: frontend/flutter_app/lib/services/api_service.dart
+--------------------------------------------------
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // 10.0.2.2 is the special alias for your computer's localhost in the Android Emulator
-  static const String socketUrl = 'https://automate-72vi.onrender.com';
+   static const String socketUrl = 'https://automate-72vi.onrender.com';
   static const String baseUrl = '$socketUrl/api';
 
   /// GET token from local storage
@@ -12,7 +16,6 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('jwt_token');
   }
-
   // Add this inside api_service.dart if you don't have it yet!
   static Future<void> removeToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,29 +47,9 @@ class ApiService {
   }
 
   /// POST request with JWT header
-  static Future<http.Response> postRequest(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) async {
+  static Future<http.Response> postRequest(String endpoint, Map<String, dynamic> body) async {
     final token = await getToken();
     return await http.post(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    );
-  }
-
-  /// PUT request with JWT header
-  static Future<http.Response> putRequest(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) async {
-    final token = await getToken();
-
-    return await http.put(
       Uri.parse('$baseUrl$endpoint'),
       headers: {
         'Content-Type': 'application/json',

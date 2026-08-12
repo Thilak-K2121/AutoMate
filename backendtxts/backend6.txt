@@ -55,6 +55,9 @@ const rideController = {
 
       await db.query('COMMIT');
 
+      socketManager.getIO().emit('newRide');
+
+
       res.status(201).json({
         message: 'Ride created successfully',
         ride: newRide

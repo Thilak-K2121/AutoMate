@@ -3,7 +3,7 @@ const socketManager = require('../sockets/socketManager');
 
 const rideController = {
 
-  // ✅ CREATE RIDE
+  // CREATE RIDE
   createRide: async (req, res) => {
     try {
       const { destination, meeting_point, seats_total, female_only, paymentMode } = req.body;
@@ -11,7 +11,7 @@ const rideController = {
 
       const seats_available = seats_total - 1;
 
-      // ✅ safer boolean parsing
+      // safer boolean parsing
       const isFemaleOnly =
           female_only === true ||
           female_only === 'true' ||
@@ -66,7 +66,7 @@ const rideController = {
     }
   },
 
-  // ✅ GET NEARBY RIDES (FIXED 🔥)
+  // GET NEARBY RIDES (FIXED 🔥)
   getNearbyRides: async (req, res) => {
     try {
       const currentUserId = req.user.id;

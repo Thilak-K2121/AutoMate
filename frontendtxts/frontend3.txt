@@ -1,3 +1,7 @@
+File Name: chat_page.dart
+Location: frontend/flutter_app/lib/screens/chat_page.dart
+--------------------------------------------------
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -24,10 +28,6 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-
-    // Start Socket.io immediately, in parallel with REST calls
-    _connectSocket();
-
     _initializeChat();
   }
 
@@ -35,47 +35,29 @@ class _ChatPageState extends State<ChatPage> {
     try {
       // 1. Get the current user ID so we know which messages are "ours"
       final userResponse = await ApiService.getRequest('/auth/me');
-
       if (userResponse.statusCode == 200) {
         final userData = jsonDecode(userResponse.body);
         _currentUserId = userData['user']['id'];
       }
 
       // 2. Fetch Chat History
-      await _fetchMessages();
-    } catch (e) {
-      debugPrint("Error initializing chat: $e");
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _fetchMessages() async {
-    try {
       final msgResponse = await ApiService.getRequest(
         '/messages/${widget.rideId}',
       );
-
       if (msgResponse.statusCode == 200) {
         final msgData = jsonDecode(msgResponse.body);
-
-        if (mounted) {
-          setState(() {
-            _messages = msgData['messages'];
-            _isLoading = false;
-          });
-
-          _scrollToBottom();
-        }
+        setState(() {
+          _messages = msgData['messages'];
+          _isLoading = false;
+        });
+        _scrollToBottom();
       }
+
+      // 3. Connect to Socket.io
+      _connectSocket();
     } catch (e) {
-      debugPrint("Error fetching messages: $e");
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      debugPrint("Error initializing chat: $e");
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -85,31 +67,22 @@ class _ChatPageState extends State<ChatPage> {
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
-          .enableForceNew()
+          .enableForceNew() // 👇 THE MAGIC FIX: Forces a completely separate connection just for chat
           .build(),
     );
 
-    // Start connecting immediately
     _socket.connect();
 
     _socket.onConnect((_) {
       debugPrint('Chat connected to Socket.io');
-
-      // Join the ride room and wait for server confirmation
-      _socket.emitWithAck(
-        'joinRideRoom',
-        widget.rideId.toString(),
-        ack: (response) {
-          debugPrint(
-            'Room join confirmed — resyncing history in case anything was missed',
-          );
-
-          // Safety-net fetch:
-          // catches messages sent before this socket finished joining the room.
-          _fetchMessages();
-        },
-      );
+      // Added .toString() to ensure it perfectly matches the backend room ID
+      _socket.emit('joinRideRoom', widget.rideId.toString());
     });
+
+    // 👇 ADD THIS: If it connects instantly, onConnect might be skipped, so we check manually!
+    if (_socket.connected) {
+      _socket.emit('joinRideRoom', widget.rideId.toString());
+    }
 
     // Listen for new messages from the backend
     _socket.on('newMessage', (data) {
@@ -117,12 +90,10 @@ class _ChatPageState extends State<ChatPage> {
         setState(() {
           // Prevent drawing the message twice if we already added it locally
           final messageExists = _messages.any((msg) => msg['id'] == data['id']);
-
           if (!messageExists) {
             _messages.add(data);
           }
         });
-
         _scrollToBottom();
       }
     });
@@ -417,3 +388,4 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 }
+

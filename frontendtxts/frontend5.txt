@@ -1,3 +1,7 @@
+File Name: home_page.dart
+Location: frontend/flutter_app/lib/screens/home_page.dart
+--------------------------------------------------
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -21,7 +25,6 @@ class _HomePageState extends State<HomePage> {
   String _userId = "";
   List<dynamic> _availableRides = [];
   bool _isLoading = true;
-  bool _hasUnreadNotifications = false;
   String _searchQuery = ""; // NEW: Tracks the search bar input
   // 👇 NEW: Track the currently joined ride for the UI & Double-Booking check
   String? _activeRideId;
@@ -42,23 +45,12 @@ class _HomePageState extends State<HomePage> {
       final userResponse = await ApiService.getRequest('/auth/me');
       if (userResponse.statusCode == 200) {
         final userData = jsonDecode(userResponse.body);
-
-        final userId = userData['user']['id'].toString();
-
-        if (mounted) {
-          setState(() {
-            _userName = userData['user']['name'].split(' ')[0];
-            _userId = userId;
-          });
-        }
-
-        // Join this user's personal notification room
-        if (_socket.connected) {
-          _socket.emit('joinUserRoom', userId);
-        }
+        setState(() {
+          _userName = userData['user']['name'].split(' ')[0];
+          _userId = userData['user']['id'].toString();
+        });
       }
 
-      await _refreshUnreadStatus();
       // 2. NEW: Fetch My Rides to check active ride
       final myRidesResponse = await ApiService.getRequest('/rides/my-rides');
       if (myRidesResponse.statusCode == 200) {
@@ -98,25 +90,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _refreshUnreadStatus() async {
-    try {
-      final response = await ApiService.getRequest('/notifications');
-
-      if (response.statusCode == 200 && mounted) {
-        final data = jsonDecode(response.body);
-        final notifications = data['notifications'] as List<dynamic>? ?? [];
-
-        setState(() {
-          _hasUnreadNotifications = notifications.any((notification) {
-            return notification['is_read'] != true;
-          });
-        });
-      }
-    } catch (e) {
-      debugPrint("Error checking notification status: $e");
-    }
-  }
-
   // 👇 NEW: Listen to the backend for real-time ride updates
   void _setupGlobalSocket() {
     _socket = IO.io(
@@ -131,22 +104,6 @@ class _HomePageState extends State<HomePage> {
 
     _socket.onConnect((_) {
       debugPrint('HomePage connected to Socket.io for live updates');
-
-      // Join personal notification room once socket connection is ready
-      if (_userId.isNotEmpty) {
-        _socket.emit('joinUserRoom', _userId);
-        debugPrint('Joined personal notification room: user_$_userId');
-      }
-    });
-
-    _socket.on('newNotification', (_) {
-      debugPrint('New notification received');
-
-      if (mounted) {
-        setState(() {
-          _hasUnreadNotifications = true;
-        });
-      }
     });
 
     // Listen for a 'newRide' or 'rideUpdated' event from the server
@@ -282,16 +239,13 @@ class _HomePageState extends State<HomePage> {
 
                         /// Notifications
                         GestureDetector(
-                          onTap: () async {
-                            await Navigator.push(
+                          onTap: () {
+                            Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => const NotificationsPage(),
                               ),
                             );
-
-                            // Refresh unread status after returning from NotificationsPage
-                            await _refreshUnreadStatus();
                           },
                           child: Stack(
                             children: [
@@ -314,19 +268,18 @@ class _HomePageState extends State<HomePage> {
                                   color: Color(0xFF374151),
                                 ),
                               ),
-                              if (_hasUnreadNotifications)
-                                Positioned(
-                                  right: 6,
-                                  top: 6,
-                                  child: Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
+                              Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
                                   ),
                                 ),
+                              ),
                             ],
                           ),
                         ),
@@ -925,3 +878,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
