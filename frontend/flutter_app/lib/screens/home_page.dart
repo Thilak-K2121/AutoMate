@@ -540,9 +540,11 @@ class _HomePageState extends State<HomePage> {
 
                         final String creatorId =
                             ride['creator_id']?.toString() ?? '';
-                        final bool isMyRide = creatorId == _userId;
+                        final bool isMyRide =
+                            creatorId.isNotEmpty && creatorId == _userId;
                         final bool isActiveJoinedRide =
-                            ride['id'].toString() == _activeRideId;
+                            (ride['id'].toString() == _activeRideId) &&
+                                !isMyRide;
 
                         // 👇 NEW: Extract payment mode
                         final String paymentMode =
@@ -656,15 +658,18 @@ class _HomePageState extends State<HomePage> {
     Color buttonFinalColor = buttonColor;
     String buttonText = "View";
 
-    if (isActiveJoinedRide) {
+    if (isMyRide) {
+      cardBackground = isFemaleOnly
+          ? Colors.pink.shade50
+          : const Color(0xFFF0FDF4);
+      buttonFinalColor = isFemaleOnly ? Colors.pink : const Color(0xFF2F80ED);
+      buttonText = "Your Ride";
+    } else if (isActiveJoinedRide) {
       cardBackground = isFemaleOnly
           ? Colors.pink.shade50
           : const Color(0xFFE8F5E9);
       buttonFinalColor = isFemaleOnly ? Colors.pink : const Color(0xFF34A853);
-      buttonText = "View Details";
-    } else if (isMyRide) {
-      buttonFinalColor = Colors.grey.shade400;
-      buttonText = "Your Ride";
+      buttonText = "Joined";
     }
 
     return GestureDetector(
@@ -686,17 +691,19 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(
           color: cardBackground,
           borderRadius: BorderRadius.circular(22),
-          border: isActiveJoinedRide
+          border: (isMyRide || isActiveJoinedRide)
               ? Border.all(
                   color: isFemaleOnly
                       ? Colors.pink.shade300
-                      : Colors.green.shade300,
+                      : (isMyRide
+                          ? const Color(0xFF2F80ED)
+                          : Colors.green.shade300),
                   width: 2,
                 )
               : (isFemaleOnly
                     ? Border.all(color: Colors.pink.shade100, width: 1.5)
                     : null),
-          boxShadow: isActiveJoinedRide
+          boxShadow: (isMyRide || isActiveJoinedRide)
               ? []
               : [
                   BoxShadow(
@@ -715,7 +722,9 @@ class _HomePageState extends State<HomePage> {
                   radius: 4,
                   backgroundColor: isFemaleOnly
                       ? Colors.pink
-                      : const Color(0xFF34A853),
+                      : (isMyRide
+                          ? const Color(0xFF2F80ED)
+                          : const Color(0xFF34A853)),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -729,7 +738,34 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                if (isActiveJoinedRide)
+                if (isMyRide)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isFemaleOnly
+                          ? Colors.pink
+                          : const Color(0xFF2F80ED),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.person, color: Colors.white, size: 12),
+                        SizedBox(width: 4),
+                        Text(
+                          "Hosting",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (isActiveJoinedRide)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
