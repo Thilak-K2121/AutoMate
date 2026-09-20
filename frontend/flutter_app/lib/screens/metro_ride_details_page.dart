@@ -196,21 +196,59 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
             r['id'].toString() != widget.rideId,
       );
 
-      // 2. SHOW SMART WARNINGS
+      // 2. STRICT DOUBLE-BOOKING PREVENTION
       if (isHosting) {
-        final proceed = await _showWarningDialog(
-          "Cancel Your Ride?",
-          "Joining this ride will CANCEL the ride you are hosting and affect your passengers.\n\nDo you want to continue?",
-          Colors.red,
-        );
-        if (!proceed) return;
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Row(
+                children: [
+                  Icon(Icons.block, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text("Double Booking Blocked"),
+                ],
+              ),
+              content: const Text(
+                "You are currently hosting an active ride. You cannot join another ride while hosting. Please end or cancel your hosted ride first.",
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("OK"),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
       } else if (isPassenger) {
-        final proceed = await _showWarningDialog(
-          "Switch Rides?",
-          "You are already in another ride.\n\nJoining this ride will leave your current ride.",
-          const Color(0xFFF59E0B),
-        );
-        if (!proceed) return;
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text("Already in a Ride"),
+                ],
+              ),
+              content: const Text(
+                "You are already booked in another active ride. You cannot double book rides. Please leave your current ride before joining this one.",
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("OK"),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
       }
     }
 

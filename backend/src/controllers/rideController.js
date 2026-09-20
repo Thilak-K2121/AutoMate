@@ -9,6 +9,30 @@ const rideController = {
       const { destination, meeting_point, seats_total, female_only, paymentMode } = req.body;
       const creator_id = req.user.id;
 
+      // 🚫 Double Booking Prevention: Check if creator is already hosting an active ride
+      const activeHosted = await db.query(
+        `SELECT id FROM rides WHERE creator_id = $1 AND status IN ('active', 'full') LIMIT 1`,
+        [creator_id]
+      );
+      if (activeHosted.rows.length > 0) {
+        return res.status(400).json({
+          message: 'You already have an active hosted ride. Please complete or cancel it before creating a new one.'
+        });
+      }
+
+      // 🚫 Double Booking Prevention: Check if creator is already joined in an active ride
+      const activeJoined = await db.query(
+        `SELECT r.id FROM ride_participants rp
+         JOIN rides r ON rp.ride_id = r.id
+         WHERE rp.user_id = $1 AND r.status IN ('active', 'full') LIMIT 1`,
+        [creator_id]
+      );
+      if (activeJoined.rows.length > 0) {
+        return res.status(400).json({
+          message: 'You are already a passenger in an active ride. Please leave your current ride before creating a new one.'
+        });
+      }
+
       const seats_available = seats_total - 1;
 
       // safer boolean parsing
@@ -19,10 +43,10 @@ const rideController = {
           female_only === 1;
       
       console.log({
-  incoming_female_only: female_only,
-  parsed: isFemaleOnly,
-  type: typeof female_only
-});
+        incoming_female_only: female_only,
+        parsed: isFemaleOnly,
+        type: typeof female_only
+      });
 
       await db.query('BEGIN');
 
@@ -52,7 +76,6 @@ const rideController = {
       await db.query('COMMIT');
 
       socketManager.getIO().emit('newRide');
-
 
       res.status(201).json({
         message: 'Ride created successfully',
@@ -115,8 +138,7 @@ const rideController = {
   },
 
   // ✅ JOIN RIDE
-  // ✅ JOIN RIDE
-joinRide: async (req, res) => {
+  joinRide: async (req, res) => {
   try {
     const { rideId } = req.body;
     const userId = req.user.id;
@@ -143,6 +165,14 @@ joinRide: async (req, res) => {
 
     const ride = rideCheck.rows[0];
 
+    // 🚫 Prevent joining own ride as passenger
+    if (ride.creator_id == userId) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({
+        message: 'You cannot join your own ride as a passenger.'
+      });
+    }
+
     console.log({
       female_only: ride.female_only,
       type: typeof ride.female_only
@@ -168,31 +198,20 @@ joinRide: async (req, res) => {
       }
     }
 
-    // 👇 NEW: Check if the user is currently HOSTING an active ride
-const hostingCheck = await db.query(
-  `SELECT id FROM rides WHERE creator_id = $1 AND status IN ('active', 'full') LIMIT 1`,
-  [userId]
-);
+    // 🚫 Double-Booking Check 1: Is user currently hosting an active ride?
+    const hostingCheck = await db.query(
+      `SELECT id FROM rides WHERE creator_id = $1 AND status IN ('active', 'full') LIMIT 1`,
+      [userId]
+    );
 
-if (hostingCheck.rows.length > 0) {
-  const hostedRideId = hostingCheck.rows[0].id;
+    if (hostingCheck.rows.length > 0) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({
+        message: 'You are already hosting an active ride. You cannot book another ride.'
+      });
+    }
 
-  // 🚫 Prevent joining your own ride
-  if (hostedRideId == rideId) {
-    await db.query('ROLLBACK');
-    return res.status(400).json({
-      message: 'You cannot join your own ride as a passenger.'
-    });
-  }
-
-  // 👇 Auto-cancel their hosted ride
-  await db.query(
-    `UPDATE rides SET status = 'cancelled' WHERE id = $1`,
-    [hostedRideId]
-  );
-}
-
-    // 👇 NEW: Check if user already in another active ride
+    // 🚫 Double-Booking Check 2: Is user already joined in this or another active ride?
     const existingRide = await db.query(
       `SELECT r.id 
        FROM ride_participants rp
@@ -205,25 +224,15 @@ if (hostingCheck.rows.length > 0) {
 
     if (existingRide.rows.length > 0) {
       const currentRideId = existingRide.rows[0].id;
-
-      // If same ride → block
+      await db.query('ROLLBACK');
       if (currentRideId == rideId) {
-        await db.query('ROLLBACK');
         return res.status(400).json({
           message: 'You have already joined this ride.'
         });
       }
-
-      // 👇 AUTO-LEAVE previous ride
-      await db.query(
-        'DELETE FROM ride_participants WHERE ride_id = $1 AND user_id = $2',
-        [currentRideId, userId]
-      );
-
-      await db.query(
-        "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1",
-        [currentRideId]
-      );
+      return res.status(400).json({
+        message: 'You are already booked in another active ride. Double-booking is not allowed.'
+      });
     }
 
     if (ride.seats_available <= 0) {

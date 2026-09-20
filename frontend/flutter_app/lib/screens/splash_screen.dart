@@ -21,14 +21,44 @@ class _SplashScreenState extends State<SplashScreenPage> {
     await Future.delayed(const Duration(milliseconds: 2500));
     if (!mounted) return;
 
-    final token = await ApiService.getToken();
-    final nextPage =
-        (token?.isNotEmpty ?? false) ? const HomePage() : const SignInPage();
+    final token = await ApiService.getValidToken();
+    if (token == null || token.isEmpty) {
+      await ApiService.clearToken();
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const SignInPage()),
+      );
+      return;
+    }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => nextPage),
-    );
+    // Verify token validity with backend
+    try {
+      final response = await ApiService.getRequest('/auth/me');
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      } else {
+        // Token is expired (e.g. after 7 days) or invalid
+        await ApiService.clearToken();
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SignInPage()),
+        );
+      }
+    } catch (e) {
+      // In case of network error, if JWT hasn't locally expired, allow HomePage
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    }
   }
 
   @override

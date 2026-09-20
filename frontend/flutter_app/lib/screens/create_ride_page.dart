@@ -111,6 +111,56 @@ class _CreateRidePageState extends State<CreateRidePage> {
     });
 
     try {
+      // 🚫 Double-booking check: verify user has no active hosted or joined rides
+      final myRidesRes = await ApiService.getRequest('/rides/my-rides');
+      if (myRidesRes.statusCode == 200) {
+        final data = jsonDecode(myRidesRes.body);
+        final hosted = data['hosted'] as List<dynamic>? ?? [];
+        final joined = data['joined'] as List<dynamic>? ?? [];
+
+        final hasActiveHosted = hosted.any(
+          (r) => r['status'] == 'active' || r['status'] == 'full',
+        );
+        final hasActiveJoined = joined.any(
+          (r) => r['status'] == 'active' || r['status'] == 'full',
+        );
+
+        if (hasActiveHosted || hasActiveJoined) {
+          setState(() {
+            _isLoading = false;
+          });
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: const Row(
+                  children: [
+                    Icon(Icons.block, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text("Cannot Create Ride"),
+                  ],
+                ),
+                content: Text(
+                  hasActiveHosted
+                      ? "You are currently hosting an active ride. Please complete or cancel your active ride before creating a new one."
+                      : "You are currently booked in an active ride as a passenger. Please leave or complete your current ride before hosting a new one.",
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text("OK"),
+                  ),
+                ],
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       final response =
           await ApiService.postRequest(
         '/rides/create',

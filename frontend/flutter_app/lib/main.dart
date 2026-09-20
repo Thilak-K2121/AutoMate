@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/api_service.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
@@ -11,6 +12,7 @@ class AutoMateApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: ApiService.navigatorKey,
       title: 'AutoMate',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

@@ -8,6 +8,7 @@ import 'map_page.dart';
 import 'notifications_page.dart';
 import 'metro_ride_details_page.dart';
 import 'profile_page.dart';
+import 'sign_in_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -56,19 +57,44 @@ class _HomePageState extends State<HomePage> {
         if (_socket.connected) {
           _socket.emit('joinUserRoom', userId);
         }
+      } else if (userResponse.statusCode == 401 || userResponse.statusCode == 403) {
+        // Token is expired (e.g. after 7 days) or invalid
+        await ApiService.clearToken();
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const SignInPage()),
+            (route) => false,
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Session expired. Please sign in again."),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        return;
       }
 
       await _refreshUnreadStatus();
-      // 2. NEW: Fetch My Rides to check active ride
+      // 2. Fetch My Rides to check active ride accurately (hosted or joined)
       final myRidesResponse = await ApiService.getRequest('/rides/my-rides');
       if (myRidesResponse.statusCode == 200) {
         final myRidesData = jsonDecode(myRidesResponse.body);
+        final hostedRides = myRidesData['hosted'] as List<dynamic>? ?? [];
         final joinedRides = myRidesData['joined'] as List<dynamic>? ?? [];
 
-        final active = joinedRides.cast<dynamic?>().firstWhere(
-          (r) => r != null && r['status'] != 'completed',
+        final activeHosted = hostedRides.cast<dynamic?>().firstWhere(
+          (r) => r != null && (r['status'] == 'active' || r['status'] == 'full'),
           orElse: () => null,
         );
+
+        final activeJoined = joinedRides.cast<dynamic?>().firstWhere(
+          (r) => r != null && (r['status'] == 'active' || r['status'] == 'full'),
+          orElse: () => null,
+        );
+
+        final active = activeHosted ?? activeJoined;
 
         setState(() {
           if (active != null) {
@@ -176,6 +202,31 @@ class _HomePageState extends State<HomePage> {
     if (hour < 12) return "Good Morning";
     if (hour < 17) return "Good Afternoon";
     return "Good Evening";
+  }
+
+  void _showActiveRideBlockedDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.block, color: Colors.red),
+            SizedBox(width: 8),
+            Text("Active Ride Found"),
+          ],
+        ),
+        content: Text(
+          "You already have an active ride in progress${_activeRideDest != null ? ' to $_activeRideDest' : ''}. You cannot create a new ride until your current ride is completed, left, or cancelled.",
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -386,6 +437,11 @@ class _HomePageState extends State<HomePage> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () async {
+                              if (_activeRideId != null) {
+                                _showActiveRideBlockedDialog();
+                                return;
+                              }
+
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -416,6 +472,11 @@ class _HomePageState extends State<HomePage> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () async {
+                              if (_activeRideId != null) {
+                                _showActiveRideBlockedDialog();
+                                return;
+                              }
+
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -874,6 +935,11 @@ class _HomePageState extends State<HomePage> {
 
           GestureDetector(
             onTap: () async {
+              if (_activeRideId != null) {
+                _showActiveRideBlockedDialog();
+                return;
+              }
+
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const CreateRidePage()),
