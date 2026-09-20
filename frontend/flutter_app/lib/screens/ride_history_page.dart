@@ -270,59 +270,125 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
 
   Widget _bottomNavBar() {
     return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(horizontal: 28),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.05),
-            blurRadius: 10,
-            offset: const Offset(0, -3),
-          )
+            color: Colors.black.withOpacity(.06),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomePage())),
-            child: const _NavItem(icon: Icons.home, label: "Home"),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: [
+              Expanded(
+                child: _navItem(
+                  icon: Icons.home_rounded,
+                  label: "Home",
+                  active: false,
+                  onTap: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomePage()),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _navItem(
+                  icon: Icons.directions_car_rounded,
+                  label: "Rides",
+                  active: true,
+                  onTap: () {},
+                ),
+              ),
+              SizedBox(
+                width: 64,
+                height: 64,
+                child: Center(
+                  child: Material(
+                    color: const Color(0xFF2F80ED),
+                    shape: const CircleBorder(),
+                    elevation: 3,
+                    shadowColor: const Color(0xFF2F80ED).withOpacity(0.4),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () {},
+                      child: const SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _navItem(
+                  icon: Icons.map_rounded,
+                  label: "Map",
+                  active: false,
+                  onTap: () {},
+                ),
+              ),
+              Expanded(
+                child: _navItem(
+                  icon: Icons.person_outline_rounded,
+                  label: "Profile",
+                  active: false,
+                  onTap: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ProfilePage()),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const _NavItem(icon: Icons.directions_car, label: "Rides", active: true),
-          const CircleAvatar(
-            radius: 26,
-            backgroundColor: Color(0xFF2F80ED),
-            child: Icon(Icons.add, color: Colors.white),
-          ),
-          const _NavItem(icon: Icons.map, label: "Map"),
-          GestureDetector(
-            onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfilePage())),
-            child: const _NavItem(icon: Icons.person_outline, label: "Profile"),
-          ),
-        ],
+        ),
       ),
     );
   }
-}
 
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool active;
-
-  const _NavItem({required this.icon, required this.label, this.active = false});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _navItem({
+    required IconData icon,
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
     final color = active ? const Color(0xFF34A853) : const Color(0xFF6B7280);
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, size: 22, color: color),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 12, color: color)),
-      ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        splashFactory: InkRipple.splashFactory,
+        highlightColor: const Color(0xFF34A853).withOpacity(0.08),
+        splashColor: const Color(0xFF34A853).withOpacity(0.12),
+        child: SizedBox(
+          height: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 24, color: color),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

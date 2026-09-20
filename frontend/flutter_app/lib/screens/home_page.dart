@@ -903,101 +903,155 @@ class _HomePageState extends State<HomePage> {
 
   Widget _bottomNavBar() {
     return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-      ), // Adjusted for smaller screens
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.05),
-            blurRadius: 10,
-            offset: const Offset(0, -3),
+            color: Colors.black.withOpacity(.06),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _navItem(Icons.home, "Home", true),
-
-          // NEW: Interactive Rides Button
-          // REPLACE the existing Rides button with this:
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MyRidesPage()),
-              );
-            },
-            child: _navItem(Icons.history, "Rides", false),
-          ),
-
-          GestureDetector(
-            onTap: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CreateRidePage()),
-              );
-              if (result == true) {
-                setState(() {
-                  _searchQuery = "";
-                });
-
-                await _fetchDashboardData();
-              }
-            },
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(
-                color: Color(0xFF2F80ED),
-                shape: BoxShape.circle,
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: [
+              Expanded(
+                child: _navItem(
+                  icon: Icons.home_rounded,
+                  label: "Home",
+                  active: true,
+                  onTap: () {},
+                ),
               ),
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
-          ),
+              Expanded(
+                child: _navItem(
+                  icon: Icons.history_rounded,
+                  label: "Rides",
+                  active: false,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MyRidesPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(
+                width: 64,
+                height: 64,
+                child: Center(
+                  child: Material(
+                    color: const Color(0xFF2F80ED),
+                    shape: const CircleBorder(),
+                    elevation: 3,
+                    shadowColor: const Color(0xFF2F80ED).withOpacity(0.4),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreateRidePage(),
+                          ),
+                        );
+                        if (result == true) {
+                          setState(() {
+                            _searchQuery = "";
+                          });
 
-          // NEW: Interactive Map Button
-          // REPLACE the existing Map button with this:
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MapPage()),
-              );
-            },
-            child: _navItem(Icons.map, "Map", false),
+                          await _fetchDashboardData();
+                        }
+                      },
+                      child: const SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _navItem(
+                  icon: Icons.map_rounded,
+                  label: "Map",
+                  active: false,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MapPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Expanded(
+                child: _navItem(
+                  icon: Icons.person_outline_rounded,
+                  label: "Profile",
+                  active: false,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProfilePage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-
-          // FIXED: Use push instead of pushReplacement so the back button works on the Profile page
-          // NEW: Interactive Profile Button
-          // FIXED: Removed 'const' and named parameters to match your method signature
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfilePage()),
-              );
-            },
-            child: _navItem(Icons.person_outline, "Profile", false),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _navItem(IconData icon, String label, bool active) {
+  Widget _navItem({
+    required IconData icon,
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
     final color = active ? const Color(0xFF34A853) : const Color(0xFF6B7280);
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, color: color, size: 22),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 12, color: color)),
-      ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        splashFactory: InkRipple.splashFactory,
+        highlightColor: const Color(0xFF34A853).withOpacity(0.08),
+        splashColor: const Color(0xFF34A853).withOpacity(0.12),
+        child: SizedBox(
+          height: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
