@@ -204,31 +204,6 @@ class _HomePageState extends State<HomePage> {
     return "Good Evening";
   }
 
-  void _showActiveRideBlockedDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.block, color: Colors.red),
-            SizedBox(width: 8),
-            Text("Active Ride Found"),
-          ],
-        ),
-        content: Text(
-          "You already have an active ride in progress${_activeRideDest != null ? ' to $_activeRideDest' : ''}. You cannot create a new ride until your current ride is completed, left, or cancelled.",
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _socket.disconnect();
@@ -437,11 +412,6 @@ class _HomePageState extends State<HomePage> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () async {
-                              if (_activeRideId != null) {
-                                _showActiveRideBlockedDialog();
-                                return;
-                              }
-
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -472,11 +442,6 @@ class _HomePageState extends State<HomePage> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () async {
-                              if (_activeRideId != null) {
-                                _showActiveRideBlockedDialog();
-                                return;
-                              }
-
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -935,11 +900,6 @@ class _HomePageState extends State<HomePage> {
 
           GestureDetector(
             onTap: () async {
-              if (_activeRideId != null) {
-                _showActiveRideBlockedDialog();
-                return;
-              }
-
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const CreateRidePage()),

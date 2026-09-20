@@ -130,7 +130,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
             _isLoading = false;
           });
           if (mounted) {
-            showDialog(
+            final proceed = await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
                 shape: RoundedRectangleBorder(
@@ -138,26 +138,37 @@ class _CreateRidePageState extends State<CreateRidePage> {
                 ),
                 title: const Row(
                   children: [
-                    Icon(Icons.block, color: Colors.red),
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange),
                     SizedBox(width: 8),
-                    Text("Cannot Create Ride"),
+                    Text("Cancel Existing Ride?"),
                   ],
                 ),
                 content: Text(
                   hasActiveHosted
-                      ? "You are currently hosting an active ride. Please complete or cancel your active ride before creating a new one."
-                      : "You are currently booked in an active ride as a passenger. Please leave or complete your current ride before hosting a new one.",
+                      ? "You are currently hosting an active ride. Do you want to cancel your existing ride and create this new one?"
+                      : "You are currently booked in an active ride. Do you want to cancel/leave your existing ride and create this new one?",
                 ),
                 actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text("Keep Current Ride", style: TextStyle(color: Colors.grey)),
+                  ),
                   ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text("OK"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text("Cancel & Create New"),
                   ),
                 ],
               ),
             );
+            if (proceed != true) return;
+            setState(() {
+              _isLoading = true;
+            });
           }
-          return;
         }
       }
 

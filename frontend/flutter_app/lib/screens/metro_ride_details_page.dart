@@ -196,59 +196,75 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
             r['id'].toString() != widget.rideId,
       );
 
-      // 2. STRICT DOUBLE-BOOKING PREVENTION
+      // 2. CONFIRMATION DIALOG: CANCEL EXISTING AND BOOK NEW
       if (isHosting) {
         if (mounted) {
-          showDialog(
+          final proceed = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: const Row(
                 children: [
-                  Icon(Icons.block, color: Colors.red),
+                  Icon(Icons.swap_horiz_rounded, color: Colors.orange),
                   SizedBox(width: 8),
-                  Text("Double Booking Blocked"),
+                  Text("Cancel Existing Ride?"),
                 ],
               ),
               content: const Text(
-                "You are currently hosting an active ride. You cannot join another ride while hosting. Please end or cancel your hosted ride first.",
+                "You are currently hosting an active ride. Do you want to cancel your existing ride and book this new one?",
               ),
               actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text("Keep Hosted Ride", style: TextStyle(color: Colors.grey)),
+                ),
                 ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text("OK"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text("Cancel & Book New"),
                 ),
               ],
             ),
           );
+          if (proceed != true) return;
         }
-        return;
       } else if (isPassenger) {
         if (mounted) {
-          showDialog(
+          final proceed = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: const Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  Icon(Icons.swap_horiz_rounded, color: Color(0xFF34A853)),
                   SizedBox(width: 8),
-                  Text("Already in a Ride"),
+                  Text("Switch Ride?"),
                 ],
               ),
               content: const Text(
-                "You are already booked in another active ride. You cannot double book rides. Please leave your current ride before joining this one.",
+                "You are currently in an active ride. Do you want to cancel/leave your existing ride and book this new one?",
               ),
               actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text("Keep Current Ride", style: TextStyle(color: Colors.grey)),
+                ),
                 ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text("OK"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF34A853),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text("Switch to This Ride"),
                 ),
               ],
             ),
           );
+          if (proceed != true) return;
         }
-        return;
       }
     }
 

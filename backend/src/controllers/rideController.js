@@ -9,30 +9,6 @@ const rideController = {
       const { destination, meeting_point, seats_total, female_only, paymentMode } = req.body;
       const creator_id = req.user.id;
 
-      // 🚫 Double Booking Prevention: Check if creator is already hosting an active ride
-      const activeHosted = await db.query(
-        `SELECT id FROM rides WHERE creator_id = $1 AND status IN ('active', 'full') LIMIT 1`,
-        [creator_id]
-      );
-      if (activeHosted.rows.length > 0) {
-        return res.status(400).json({
-          message: 'You already have an active hosted ride. Please complete or cancel it before creating a new one.'
-        });
-      }
-
-      // 🚫 Double Booking Prevention: Check if creator is already joined in an active ride
-      const activeJoined = await db.query(
-        `SELECT r.id FROM ride_participants rp
-         JOIN rides r ON rp.ride_id = r.id
-         WHERE rp.user_id = $1 AND r.status IN ('active', 'full') LIMIT 1`,
-        [creator_id]
-      );
-      if (activeJoined.rows.length > 0) {
-        return res.status(400).json({
-          message: 'You are already a passenger in an active ride. Please leave your current ride before creating a new one.'
-        });
-      }
-
       const seats_available = seats_total - 1;
 
       // safer boolean parsing
@@ -49,6 +25,31 @@ const rideController = {
       });
 
       await db.query('BEGIN');
+
+      // Auto-cancel any previous active hosted ride
+      await db.query(
+        `UPDATE rides SET status = 'cancelled' WHERE creator_id = $1 AND status IN ('active', 'full')`,
+        [creator_id]
+      );
+
+      // Auto-leave any previous active joined ride
+      const joinedRides = await db.query(
+        `SELECT r.id FROM ride_participants rp
+         JOIN rides r ON rp.ride_id = r.id
+         WHERE rp.user_id = $1 AND r.status IN ('active', 'full')`,
+        [creator_id]
+      );
+
+      for (const row of joinedRides.rows) {
+        await db.query(
+          'DELETE FROM ride_participants WHERE ride_id = $1 AND user_id = $2',
+          [row.id, creator_id]
+        );
+        await db.query(
+          "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1",
+          [row.id]
+        );
+      }
 
       const rideResult = await db.query(
           `INSERT INTO rides 
@@ -198,41 +199,45 @@ const rideController = {
       }
     }
 
-    // 🚫 Double-Booking Check 1: Is user currently hosting an active ride?
+    // Auto-cancel any previous active hosted ride
     const hostingCheck = await db.query(
-      `SELECT id FROM rides WHERE creator_id = $1 AND status IN ('active', 'full') LIMIT 1`,
+      `SELECT id FROM rides WHERE creator_id = $1 AND status IN ('active', 'full')`,
       [userId]
     );
-
-    if (hostingCheck.rows.length > 0) {
-      await db.query('ROLLBACK');
-      return res.status(400).json({
-        message: 'You are already hosting an active ride. You cannot book another ride.'
-      });
+    for (const hRow of hostingCheck.rows) {
+      await db.query(
+        `UPDATE rides SET status = 'cancelled' WHERE id = $1`,
+        [hRow.id]
+      );
     }
 
-    // 🚫 Double-Booking Check 2: Is user already joined in this or another active ride?
+    // Auto-leave any previous active joined ride
     const existingRide = await db.query(
       `SELECT r.id 
        FROM ride_participants rp
        JOIN rides r ON rp.ride_id = r.id
        WHERE rp.user_id = $1 
-       AND r.status IN ('active', 'full')
-       LIMIT 1`,
+       AND r.status IN ('active', 'full')`,
       [userId]
     );
 
-    if (existingRide.rows.length > 0) {
-      const currentRideId = existingRide.rows[0].id;
-      await db.query('ROLLBACK');
-      if (currentRideId == rideId) {
+    for (const eRow of existingRide.rows) {
+      if (eRow.id == rideId) {
+        await db.query('ROLLBACK');
         return res.status(400).json({
           message: 'You have already joined this ride.'
         });
       }
-      return res.status(400).json({
-        message: 'You are already booked in another active ride. Double-booking is not allowed.'
-      });
+
+      await db.query(
+        'DELETE FROM ride_participants WHERE ride_id = $1 AND user_id = $2',
+        [eRow.id, userId]
+      );
+
+      await db.query(
+        "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1",
+        [eRow.id]
+      );
     }
 
     if (ride.seats_available <= 0) {
