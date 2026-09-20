@@ -37,13 +37,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchDashboardData() async {
-    await Future.delayed(const Duration(milliseconds: 300));
     try {
-      // 1. Fetch user profile
-      final userResponse = await ApiService.getRequest('/auth/me');
+      // 1. Fetch user profile, notifications, my-rides, and nearby rides concurrently
+      final responses = await Future.wait([
+        ApiService.getRequest('/auth/me'),
+        ApiService.getRequest('/rides/my-rides'),
+        ApiService.getRequest('/rides/nearby'),
+        ApiService.getRequest('/notifications'),
+      ]);
+
+      final userResponse = responses[0];
+      final myRidesResponse = responses[1];
+      final ridesResponse = responses[2];
+      final notifResponse = responses[3];
+
       if (userResponse.statusCode == 200) {
         final userData = jsonDecode(userResponse.body);
-
         final userId = userData['user']['id'].toString();
 
         if (mounted) {
@@ -53,12 +62,11 @@ class _HomePageState extends State<HomePage> {
           });
         }
 
-        // Join this user's personal notification room
         if (_socket.connected) {
           _socket.emit('joinUserRoom', userId);
         }
-      } else if (userResponse.statusCode == 401 || userResponse.statusCode == 403) {
-        // Token is expired (e.g. after 7 days) or invalid
+      } else if (userResponse.statusCode == 401 ||
+          userResponse.statusCode == 403) {
         await ApiService.clearToken();
         if (mounted) {
           Navigator.pushAndRemoveUntil(
@@ -76,51 +84,65 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
-      await _refreshUnreadStatus();
-      // 2. Fetch My Rides to check active ride accurately (hosted or joined)
-      final myRidesResponse = await ApiService.getRequest('/rides/my-rides');
+      // Notifications
+      if (notifResponse.statusCode == 200 && mounted) {
+        final data = jsonDecode(notifResponse.body);
+        final notifications = data['notifications'] as List<dynamic>? ?? [];
+        _hasUnreadNotifications = notifications.any((n) => n['is_read'] != true);
+      }
+
+      // 2. Active ride check
+      String? nextActiveRideId;
+      String? nextActiveRideDest;
+
       if (myRidesResponse.statusCode == 200) {
         final myRidesData = jsonDecode(myRidesResponse.body);
         final hostedRides = myRidesData['hosted'] as List<dynamic>? ?? [];
         final joinedRides = myRidesData['joined'] as List<dynamic>? ?? [];
 
         final activeHosted = hostedRides.cast<dynamic?>().firstWhere(
-          (r) => r != null && (r['status'] == 'active' || r['status'] == 'full'),
-          orElse: () => null,
-        );
+              (r) =>
+                  r != null &&
+                  (r['status'] == 'active' || r['status'] == 'full'),
+              orElse: () => null,
+            );
 
         final activeJoined = joinedRides.cast<dynamic?>().firstWhere(
-          (r) => r != null && (r['status'] == 'active' || r['status'] == 'full'),
-          orElse: () => null,
-        );
+              (r) =>
+                  r != null &&
+                  (r['status'] == 'active' || r['status'] == 'full'),
+              orElse: () => null,
+            );
 
         final active = activeHosted ?? activeJoined;
-
-        setState(() {
-          if (active != null) {
-            _activeRideId = active['id'].toString();
-            _activeRideDest = active['destination'].toString();
-          } else {
-            _activeRideId = null;
-            _activeRideDest = null;
-          }
-        });
+        if (active != null) {
+          nextActiveRideId = active['id'].toString();
+          nextActiveRideDest = active['destination'].toString();
+        }
       }
 
-      // 3. Fetch nearby rides
-      final ridesResponse = await ApiService.getRequest('/rides/nearby');
+      // 3. Nearby rides
+      List<dynamic> nextAvailableRides = _availableRides;
       if (ridesResponse.statusCode == 200) {
         final ridesData = jsonDecode(ridesResponse.body);
+        nextAvailableRides = ridesData['rides'] ?? [];
+      }
+
+      if (mounted) {
         setState(() {
-          _availableRides = ridesData['rides'];
+          _activeRideId = nextActiveRideId;
+          _activeRideDest = nextActiveRideDest;
+          _availableRides = nextAvailableRides;
+          _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint("Error fetching dashboard data: $e");
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -143,7 +165,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // 👇 NEW: Listen to the backend for real-time ride updates
+  // 👇 Real-time ride and notification updates
   void _setupGlobalSocket() {
     _socket = IO.io(
       ApiService.socketUrl,
@@ -158,7 +180,6 @@ class _HomePageState extends State<HomePage> {
     _socket.onConnect((_) {
       debugPrint('HomePage connected to Socket.io for live updates');
 
-      // Join personal notification room once socket connection is ready
       if (_userId.isNotEmpty) {
         _socket.emit('joinUserRoom', _userId);
         debugPrint('Joined personal notification room: user_$_userId');
@@ -167,7 +188,6 @@ class _HomePageState extends State<HomePage> {
 
     _socket.on('newNotification', (_) {
       debugPrint('New notification received');
-
       if (mounted) {
         setState(() {
           _hasUnreadNotifications = true;
@@ -175,12 +195,25 @@ class _HomePageState extends State<HomePage> {
       }
     });
 
-    // Listen for a 'newRide' or 'rideUpdated' event from the server
+    // Listen for any ride changes (created, ended, left, joined, updated)
     _socket.on('newRide', (_) {
-      debugPrint('A new ride was created! Updating UI silently...');
-      if (mounted) {
-        _fetchDashboardData(); // Silently pulls the fresh list without a loading screen!
-      }
+      debugPrint('Socket: newRide event -> updating dashboard');
+      if (mounted) _fetchDashboardData();
+    });
+
+    _socket.on('rideUpdated', (_) {
+      debugPrint('Socket: rideUpdated event -> updating dashboard');
+      if (mounted) _fetchDashboardData();
+    });
+
+    _socket.on('rideEnded', (_) {
+      debugPrint('Socket: rideEnded event -> updating dashboard');
+      if (mounted) _fetchDashboardData();
+    });
+
+    _socket.on('rideLeft', (_) {
+      debugPrint('Socket: rideLeft event -> updating dashboard');
+      if (mounted) _fetchDashboardData();
     });
 
     _socket.onDisconnect(
@@ -674,15 +707,25 @@ class _HomePageState extends State<HomePage> {
 
     return GestureDetector(
       onTap: () async {
-        // 👇 FIXED: Removed the blocker! Now anyone can view ride details freely
-        await Navigator.push(
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => MetroRideDetailsPage(rideId: id),
           ),
         );
 
-        // Always refresh when coming back
+        if (result == true && mounted) {
+          // Instantly clear active ride status from UI without waiting
+          setState(() {
+            if (_activeRideId == id) {
+              _activeRideId = null;
+              _activeRideDest = null;
+            }
+            _availableRides.removeWhere((r) => r['id']?.toString() == id);
+          });
+        }
+
+        // Always sync full fresh state immediately
         await _fetchDashboardData();
       },
       child: Container(

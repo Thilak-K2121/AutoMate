@@ -293,6 +293,9 @@ const rideController = {
 
     await db.query('COMMIT');
 
+    socketManager.getIO().emit('newRide');
+    socketManager.getIO().emit('rideUpdated', { rideId });
+
     res.status(200).json({
       message: 'Successfully joined the ride!'
     });
@@ -332,8 +335,12 @@ const rideController = {
         .to(`ride_${rideId}`)
         .emit('rideLeft', {
           message: 'User left ride',
-          userId
+          userId,
+          rideId
         });
+
+      socketManager.getIO().emit('newRide');
+      socketManager.getIO().emit('rideUpdated', { rideId });
 
       res.status(200).json({ message: 'Left ride successfully' });
 
@@ -409,7 +416,11 @@ const rideController = {
       }
       await db.query('COMMIT');
 
-      // (Optional) Send a socket notification to passengerId here letting them know they were removed
+      socketManager.getIO()
+        .to(`ride_${rideId}`)
+        .emit('passengerRemoved', { passengerId, rideId });
+      socketManager.getIO().emit('newRide');
+      socketManager.getIO().emit('rideUpdated', { rideId });
 
       res.status(200).json({ message: 'Passenger removed successfully.' });
     } catch (error) {
@@ -455,6 +466,13 @@ const rideController = {
       }
       
       await db.query('COMMIT');
+
+      socketManager.getIO()
+        .to(`ride_${rideId}`)
+        .emit('passengerBlocked', { passengerId, rideId });
+      socketManager.getIO().emit('newRide');
+      socketManager.getIO().emit('rideUpdated', { rideId });
+
       res.status(200).json({ message: 'Passenger blocked successfully.' });
     } catch (error) {
       await db.query('ROLLBACK');
@@ -483,14 +501,18 @@ const rideController = {
       socketManager.getIO()
         .to(`ride_${rideId}`)
         .emit('rideEnded', {
-          message: 'Ride ended'
+          message: 'Ride ended',
+          rideId
         });
+
+      socketManager.getIO().emit('newRide');
+      socketManager.getIO().emit('rideUpdated', { rideId, status: 'completed' });
 
      try {
         await db.query('DELETE FROM notifications WHERE ride_id = $1', [rideId]);
       } catch (err) {
         console.error('Failed to delete notifications:', err);
-}
+      }
 
       res.status(200).json({
         message: 'Ride ended successfully'
