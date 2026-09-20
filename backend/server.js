@@ -15,9 +15,6 @@ require('dotenv').config();
 const app = express();
 const server = http.createServer(app);
 
-// Routes
-app.use('/api/notifications', notificationRoutes);
-
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
@@ -30,6 +27,8 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// Routes
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/messages', messageRoutes);

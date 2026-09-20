@@ -12,6 +12,12 @@ class ApiService {
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
 
+  // Persistent HTTP client for connection pooling and TLS Keep-Alive
+  static final http.Client _client = http.Client();
+
+  // In-memory token cache to eliminate SharedPreferences disk I/O on every request
+  static String? _cachedToken;
+
   /// Decodes JWT payload and checks if token is expired (e.g. after 7 days)
   static bool isTokenExpired(String? token) {
     if (token == null || token.trim().isEmpty) return true;
@@ -37,13 +43,15 @@ class ApiService {
     }
   }
 
-  /// GET token from local storage
+  /// GET token from cache or local storage
   static Future<String?> getToken() async {
+    if (_cachedToken != null) return _cachedToken;
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('jwt_token');
+    _cachedToken = prefs.getString('jwt_token');
+    return _cachedToken;
   }
 
-  /// GET valid, non-expired token from local storage. Clears token if expired.
+  /// GET valid, non-expired token. Clears token if expired.
   static Future<String?> getValidToken() async {
     final token = await getToken();
     if (token == null || token.isEmpty) return null;
@@ -55,18 +63,21 @@ class ApiService {
   }
 
   static Future<void> removeToken() async {
+    _cachedToken = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
   }
 
-  /// SAVE token to local storage (called after login/register)
+  /// SAVE token to local storage and cache (called after login/register)
   static Future<void> saveToken(String token) async {
+    _cachedToken = token;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('jwt_token', token);
   }
 
   /// REMOVE token (called on logout)
   static Future<void> clearToken() async {
+    _cachedToken = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
   }
@@ -89,13 +100,14 @@ class ApiService {
     }
   }
 
-  /// GET request with JWT header
+  /// GET request with JWT header & persistent Keep-Alive client
   static Future<http.Response> getRequest(String endpoint) async {
     final token = await getValidToken();
-    final response = await http.get(
+    final response = await _client.get(
       Uri.parse('$baseUrl$endpoint'),
       headers: {
         'Content-Type': 'application/json',
+        'Connection': 'keep-alive',
         if (token != null) 'Authorization': 'Bearer $token',
       },
     );
@@ -109,16 +121,17 @@ class ApiService {
     return response;
   }
 
-  /// POST request with JWT header
+  /// POST request with JWT header & persistent Keep-Alive client
   static Future<http.Response> postRequest(
     String endpoint,
     Map<String, dynamic> body,
   ) async {
     final token = await getValidToken();
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl$endpoint'),
       headers: {
         'Content-Type': 'application/json',
+        'Connection': 'keep-alive',
         if (token != null) 'Authorization': 'Bearer $token',
       },
       body: jsonEncode(body),
@@ -133,16 +146,17 @@ class ApiService {
     return response;
   }
 
-  /// PUT request with JWT header
+  /// PUT request with JWT header & persistent Keep-Alive client
   static Future<http.Response> putRequest(
     String endpoint,
     Map<String, dynamic> body,
   ) async {
     final token = await getValidToken();
-    final response = await http.put(
+    final response = await _client.put(
       Uri.parse('$baseUrl$endpoint'),
       headers: {
         'Content-Type': 'application/json',
+        'Connection': 'keep-alive',
         if (token != null) 'Authorization': 'Bearer $token',
       },
       body: jsonEncode(body),

@@ -67,9 +67,17 @@ pool.query(`
 pool.query(`
   ALTER TABLE rides
   ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(20) DEFAULT 'Any';
+
+  -- Database performance indexes
+  CREATE INDEX IF NOT EXISTS idx_rides_status_created_at ON rides(status, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_rides_creator_id ON rides(creator_id);
+  CREATE INDEX IF NOT EXISTS idx_ride_participants_ride_id ON ride_participants(ride_id);
+  CREATE INDEX IF NOT EXISTS idx_ride_participants_user_id ON ride_participants(user_id);
+  CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id, is_read);
+  CREATE INDEX IF NOT EXISTS idx_blocked_passengers ON blocked_passengers(ride_id, user_id);
 `)
-.then(() => console.log("✅ Payment Mode column verified!"))
-.catch(err => console.error("Database table creation error:", err));
+.then(() => console.log("✅ Payment Mode column and performance indexes verified!"))
+.catch(err => console.error("Database table/index creation error:", err));
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
