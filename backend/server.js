@@ -3,7 +3,6 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
 const authRoutes = require('./src/routes/authRoutes');
 const rideRoutes = require('./src/routes/rideRoutes');
 const messageRoutes = require('./src/routes/messageRoutes');
@@ -30,27 +29,9 @@ app.use(cors());
 app.use(compression()); // ⚡ 70-80% Gzip payload compression
 app.use(express.json());
 
-// ⚡ Rate limiting: Protect auth routes against brute-force attacks
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // Limit each IP to 30 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: 'Too many authentication attempts. Please try again in 15 minutes.' }
-});
-
-// ⚡ Rate limiting: Protect ride creation/joining from spam
-const rideActionLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 100, // Limit each IP to 100 requests per 5 minutes
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: 'Too many ride requests. Please slow down.' }
-});
-
 // Routes
-app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/rides', rideActionLimiter, rideRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/rides', rideRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/messages', messageRoutes);
 
