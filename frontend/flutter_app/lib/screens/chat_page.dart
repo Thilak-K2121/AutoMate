@@ -127,6 +127,66 @@ class _ChatPageState extends State<ChatPage> {
       }
     });
 
+    // 🚨 Real-Time Catch: Host Ended / Cancelled Ride
+    _socket.on('rideEnded', (data) {
+      debugPrint('Chat: Ride ended event received');
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.red),
+                SizedBox(width: 8),
+                Text("Ride Ended"),
+              ],
+            ),
+            content: const Text("The host has ended/cancelled this ride. Chat is no longer active."),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF137333),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx); // Close dialog
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context); // Exit chat page to dashboard
+                  }
+                },
+                child: const Text("Return to Dashboard"),
+              ),
+            ],
+          ),
+        );
+      }
+    });
+
+    // 🚨 Real-Time Catch: Removed or Blocked by Host
+    _socket.on('passengerRemoved', (data) {
+      if (data != null && data['passengerId']?.toString() == _currentUserId) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("You were removed from this ride by the host.")),
+          );
+          if (Navigator.canPop(context)) Navigator.pop(context);
+        }
+      }
+    });
+
+    _socket.on('passengerBlocked', (data) {
+      if (data != null && data['passengerId']?.toString() == _currentUserId) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("You were blocked from this ride by the host.")),
+          );
+          if (Navigator.canPop(context)) Navigator.pop(context);
+        }
+      }
+    });
+
     _socket.onDisconnect((_) => debugPrint('Disconnected from Socket.io'));
   }
 

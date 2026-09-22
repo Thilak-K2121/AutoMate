@@ -4,20 +4,25 @@ require('dotenv').config();
 // Check if Render provided a DATABASE_URL.
 // If yes, use it with SSL.
 // Otherwise use local Docker/Postgres settings.
-const poolConfig = process.env.DATABASE_URL
-  ? {
-      connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false,
-      },
-    }
-  : {
-      user: process.env.DB_USER || 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      database: process.env.DB_NAME || 'autoride',
-      password: process.env.DB_PASSWORD || 'postgres',
-      port: process.env.DB_PORT || 5432,
-    };
+const poolConfig = {
+  ...(process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      }
+    : {
+        user: process.env.DB_USER || 'postgres',
+        host: process.env.DB_HOST || 'localhost',
+        database: process.env.DB_NAME || 'autoride',
+        password: process.env.DB_PASSWORD || 'postgres',
+        port: process.env.DB_PORT || 5432,
+      }),
+  max: 10, // Maximum pool connections
+  idleTimeoutMillis: 30000, // Close idle connections after 30s
+  connectionTimeoutMillis: 3000, // Return an error after 3s if connection could not be established
+};
 
 // Create a new PostgreSQL connection pool
 const pool = new Pool(poolConfig);
@@ -29,7 +34,6 @@ pool.on('connect', () => {
 
 pool.on('error', (err) => {
   console.error('❌ Unexpected error on idle database client', err);
-  process.exit(-1);
 });
 
 // 🚨 FORCE CREATE THE TABLE AND ADD RIDE_ID
@@ -63,7 +67,7 @@ pool.query(`
 .then(() => console.log("✅ Blocked Passengers table verified!"))
 .catch(err => console.error("Database table creation error:", err));
 
-// 🚨 ADD PAYMENT MODE COLUMN TO RIDES
+// 🚨 ADD PAYMENT MODE COLUMN TO RIDES & VERIFY INDEXES
 pool.query(`
   ALTER TABLE rides
   ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(20) DEFAULT 'Any';
@@ -75,10 +79,17 @@ pool.query(`
   CREATE INDEX IF NOT EXISTS idx_ride_participants_user_id ON ride_participants(user_id);
   CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id, is_read);
   CREATE INDEX IF NOT EXISTS idx_blocked_passengers ON blocked_passengers(ride_id, user_id);
+  CREATE INDEX IF NOT EXISTS idx_messages_ride_id ON messages(ride_id, timestamp ASC);
+
+  -- Purge orphaned messages and notifications for non-active rides on startup
+  DELETE FROM notifications WHERE ride_id IS NOT NULL AND ride_id NOT IN (SELECT id FROM rides WHERE status IN ('active', 'full'));
+  DELETE FROM messages WHERE ride_id IS NOT NULL AND ride_id NOT IN (SELECT id FROM rides WHERE status IN ('active', 'full'));
 `)
-.then(() => console.log("✅ Payment Mode column and performance indexes verified!"))
+.then(() => console.log("✅ Payment Mode column, indexes and cleanup verified!"))
 .catch(err => console.error("Database table/index creation error:", err));
 
 module.exports = {
+  pool,
   query: (text, params) => pool.query(text, params),
+  getClient: () => pool.connect(),
 };

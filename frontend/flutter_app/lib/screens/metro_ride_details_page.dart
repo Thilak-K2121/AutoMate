@@ -5,6 +5,7 @@ import 'package:flutter_app/screens/home_page.dart';
 import 'package:flutter_app/screens/map_page.dart';
 import 'package:flutter_app/screens/my_rides_page.dart';
 import 'package:flutter_app/screens/profile_page.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api_service.dart';
 import 'chat_page.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -25,11 +26,105 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
   String _currentUserId = ""; // NEW: Track who is looking at the app
   bool _isHost = false;
   bool _isLoading = true;
+  late IO.Socket _socket;
 
   @override
   void initState() {
     super.initState();
+    _connectSocket();
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _socket.emit('leaveRideRoom', widget.rideId.toString());
+    _socket.dispose();
+    super.dispose();
+  }
+
+  void _connectSocket() {
+    _socket = IO.io(
+      ApiService.socketUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .disableAutoConnect()
+          .enableForceNew()
+          .build(),
+    );
+
+    _socket.connect();
+
+    _socket.onConnect((_) {
+      _socket.emit('joinRideRoom', widget.rideId.toString());
+    });
+
+    // 🚨 Real-Time Catch: Host Ended / Cancelled Ride
+    _socket.on('rideEnded', (_) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.red),
+                SizedBox(width: 8),
+                Text("Ride Ended"),
+              ],
+            ),
+            content: const Text("The host has ended/cancelled this ride."),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF137333),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx); // Close dialog
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context, 'cancelled'); // Return cancelled state to Home
+                  }
+                },
+                child: const Text("Return to Dashboard"),
+              ),
+            ],
+          ),
+        );
+      }
+    });
+
+    // 🚨 Real-Time Catch: Removed or Blocked by Host
+    _socket.on('passengerRemoved', (data) {
+      if (data != null && data['passengerId']?.toString() == _currentUserId) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("You were removed from this ride by the host.")),
+          );
+          if (Navigator.canPop(context)) Navigator.pop(context);
+        }
+      } else {
+        _fetchData();
+      }
+    });
+
+    _socket.on('passengerBlocked', (data) {
+      if (data != null && data['passengerId']?.toString() == _currentUserId) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("You were blocked from this ride by the host.")),
+          );
+          if (Navigator.canPop(context)) Navigator.pop(context);
+        }
+      } else {
+        _fetchData();
+      }
+    });
+
+    // Live update when passengers join or leave
+    _socket.on('rideUpdated', (_) {
+      if (mounted) _fetchData();
+    });
   }
 
   // NEW: Combined fetch to get the user ID first, then the ride details
@@ -196,7 +291,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
             r['id'].toString() != widget.rideId,
       );
 
-      // 2. CONFIRMATION DIALOG: CANCEL EXISTING AND BOOK NEW
+      // 2. CONFIRMATION DIALOG: CANCEL EXISTING AND JOIN THIS RIDE
       if (isHosting) {
         if (mounted) {
           final proceed = await showDialog<bool>(
@@ -207,11 +302,11 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                 children: [
                   Icon(Icons.swap_horiz_rounded, color: Colors.orange),
                   SizedBox(width: 8),
-                  Text("Cancel Existing Ride?"),
+                  Text("Cancel Hosted Ride?"),
                 ],
               ),
               content: const Text(
-                "You are currently hosting an active ride. Do you want to cancel your existing ride and book this new one?",
+                "You are currently hosting an active ride. Do you want to cancel your hosted ride and join this one as a passenger?",
               ),
               actions: [
                 TextButton(
@@ -224,7 +319,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text("Cancel & Book New"),
+                  child: const Text("Cancel & Join Ride"),
                 ),
               ],
             ),
@@ -245,7 +340,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                 ],
               ),
               content: const Text(
-                "You are currently in an active ride. Do you want to cancel/leave your existing ride and book this new one?",
+                "You are currently in an active ride. Do you want to leave your current ride and join this one?",
               ),
               actions: [
                 TextButton(
@@ -258,7 +353,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text("Switch to This Ride"),
+                  child: const Text("Leave & Join Ride"),
                 ),
               ],
             ),

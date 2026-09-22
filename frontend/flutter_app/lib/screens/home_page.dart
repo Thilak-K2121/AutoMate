@@ -38,65 +38,26 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _fetchDashboardData() async {
     try {
-      // 1. Fetch user profile, notifications, my-rides, and nearby rides concurrently
-      final responses = await Future.wait([
-        ApiService.getRequest('/auth/me'),
-        ApiService.getRequest('/rides/my-rides'),
-        ApiService.getRequest('/rides/nearby'),
-        ApiService.getRequest('/notifications'),
-      ]);
+      // ⚡ Single-flight consolidated BFF request (1 network trip replaces 4 separate calls)
+      final response = await ApiService.getRequest('/rides/dashboard');
 
-      final userResponse = responses[0];
-      final myRidesResponse = responses[1];
-      final ridesResponse = responses[2];
-      final notifResponse = responses[3];
-
-      if (userResponse.statusCode == 200) {
-        final userData = jsonDecode(userResponse.body);
-        final userId = userData['user']['id'].toString();
-
-        if (mounted) {
-          setState(() {
-            _userName = userData['user']['name'].split(' ')[0];
-            _userId = userId;
-          });
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = data['user'];
+        if (user != null) {
+          final userId = user['id'].toString();
+          if (mounted) {
+            setState(() {
+              _userName = (user['name']?.toString() ?? 'Rider').split(' ')[0];
+              _userId = userId;
+            });
+          }
+          if (_socket.connected) {
+            _socket.emit('joinUserRoom', userId);
+          }
         }
 
-        if (_socket.connected) {
-          _socket.emit('joinUserRoom', userId);
-        }
-      } else if (userResponse.statusCode == 401 ||
-          userResponse.statusCode == 403) {
-        await ApiService.clearToken();
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const SignInPage()),
-            (route) => false,
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Session expired. Please sign in again."),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Notifications
-      if (notifResponse.statusCode == 200 && mounted) {
-        final data = jsonDecode(notifResponse.body);
-        final notifications = data['notifications'] as List<dynamic>? ?? [];
-        _hasUnreadNotifications = notifications.any((n) => n['is_read'] != true);
-      }
-
-      // 2. Active ride check
-      String? nextActiveRideId;
-      String? nextActiveRideDest;
-
-      if (myRidesResponse.statusCode == 200) {
-        final myRidesData = jsonDecode(myRidesResponse.body);
+        final myRidesData = data['myRides'] ?? {};
         final hostedRides = myRidesData['hosted'] as List<dynamic>? ?? [];
         final joinedRides = myRidesData['joined'] as List<dynamic>? ?? [];
 
@@ -115,26 +76,41 @@ class _HomePageState extends State<HomePage> {
             );
 
         final active = activeHosted ?? activeJoined;
+        String? nextActiveRideId;
+        String? nextActiveRideDest;
         if (active != null) {
           nextActiveRideId = active['id'].toString();
           nextActiveRideDest = active['destination'].toString();
         }
-      }
 
-      // 3. Nearby rides
-      List<dynamic> nextAvailableRides = _availableRides;
-      if (ridesResponse.statusCode == 200) {
-        final ridesData = jsonDecode(ridesResponse.body);
-        nextAvailableRides = ridesData['rides'] ?? [];
-      }
+        final nextAvailableRides = data['nearbyRides'] as List<dynamic>? ?? [];
+        final bool hasUnread = data['hasUnreadNotifications'] == true;
 
-      if (mounted) {
-        setState(() {
-          _activeRideId = nextActiveRideId;
-          _activeRideDest = nextActiveRideDest;
-          _availableRides = nextAvailableRides;
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _activeRideId = nextActiveRideId;
+            _activeRideDest = nextActiveRideDest;
+            _availableRides = nextAvailableRides;
+            _hasUnreadNotifications = hasUnread;
+            _isLoading = false;
+          });
+        }
+      } else if (response.statusCode == 401 ||
+          response.statusCode == 403) {
+        await ApiService.clearToken();
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const SignInPage()),
+            (route) => false,
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Session expired. Please sign in again."),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint("Error fetching dashboard data: $e");

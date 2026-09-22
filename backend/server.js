@@ -2,6 +2,8 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const authRoutes = require('./src/routes/authRoutes');
 const rideRoutes = require('./src/routes/rideRoutes');
 const messageRoutes = require('./src/routes/messageRoutes');
@@ -18,19 +20,38 @@ const server = http.createServer(app);
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: '*', // For development; we can restrict this later
+    origin: '*',
     methods: ['GET', 'POST']
   }
 });
 
 // Middleware
 app.use(cors());
+app.use(compression()); // ⚡ 70-80% Gzip payload compression
 app.use(express.json());
 
+// ⚡ Rate limiting: Protect auth routes against brute-force attacks
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit each IP to 30 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many authentication attempts. Please try again in 15 minutes.' }
+});
+
+// ⚡ Rate limiting: Protect ride creation/joining from spam
+const rideActionLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 100, // Limit each IP to 100 requests per 5 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many ride requests. Please slow down.' }
+});
+
 // Routes
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/rides', rideActionLimiter, rideRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/rides', rideRoutes);
 app.use('/api/messages', messageRoutes);
 
 // Basic Health Check Route
@@ -42,15 +63,12 @@ app.get('/health', (req, res) => {
 });
 
 // Socket.io Connection Listener
-// Initialize Socket.io Manager
 const socketManager = require('./src/sockets/socketManager');
 socketManager.init(io);
 
-// Schedule the task to run every minute
+// ⚡ Schedule background task to auto-cancel stale rides older than 30 mins & cleanup data
 cron.schedule('* * * * *', async () => {
   try {
-    // Find rides older than 30 minutes that are still active
-    // and mark them as cancelled
     const result = await db.query(`
       UPDATE rides
       SET status = 'cancelled'
@@ -60,9 +78,16 @@ cron.schedule('* * * * *', async () => {
     `);
 
     if (result.rowCount > 0) {
-      console.log(
-        `[Cron] Auto-cancelled ${result.rowCount} stale rides.`
-      );
+      const rideIds = result.rows.map(r => r.id);
+      console.log(`[Cron] Auto-cancelled ${result.rowCount} stale rides:`, rideIds);
+
+      // Auto-purge notifications and chat messages for cancelled rides
+      await db.query(`DELETE FROM notifications WHERE ride_id = ANY($1::uuid[])`, [rideIds]);
+      await db.query(`DELETE FROM messages WHERE ride_id = ANY($1::uuid[])`, [rideIds]);
+
+      // Real-time broadcast to all connected mobile clients
+      socketManager.getIO().emit('rideUpdated');
+      socketManager.getIO().emit('newRide');
     }
   } catch (error) {
     console.error('[Cron] Error auto-cancelling rides:', error);
