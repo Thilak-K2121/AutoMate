@@ -82,9 +82,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                 ),
                 onPressed: () {
                   Navigator.pop(ctx); // Close dialog
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context, 'cancelled'); // Return cancelled state to Home
-                  }
+                  Navigator.of(context).popUntil((route) => route.isFirst); // ⚡ Return straight to Dashboard
                 },
                 child: const Text("Return to Dashboard"),
               ),

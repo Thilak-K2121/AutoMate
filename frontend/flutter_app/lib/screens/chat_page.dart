@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -19,33 +20,36 @@ class _ChatPageState extends State<ChatPage> {
   List<dynamic> _messages = [];
   bool _isLoading = true;
   String _currentUserId = "";
+  String _currentUserName = "";
   late IO.Socket _socket;
+
+  // 💬 Real-Time Typing State
+  final Map<String, String> _typingUsers = {};
+  Timer? _typingTimer;
+  bool _isCurrentlyTyping = false;
 
   @override
   void initState() {
     super.initState();
-
-    // Start Socket.io immediately, in parallel with REST calls
     _connectSocket();
-
     _initializeChat();
   }
 
   Future<void> _initializeChat() async {
     try {
-      // 1. Get the current user ID so we know which messages are "ours"
+      // 1. Get the current user ID and Name
       final userResponse = await ApiService.getRequest('/auth/me');
 
       if (userResponse.statusCode == 200) {
         final userData = jsonDecode(userResponse.body);
-        _currentUserId = userData['user']['id'];
+        _currentUserId = userData['user']['id'].toString();
+        _currentUserName = (userData['user']['name'] ?? 'Rider').toString().split(' ')[0];
       }
 
       // 2. Fetch Chat History
       await _fetchMessages();
     } catch (e) {
       debugPrint("Error initializing chat: $e");
-
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -72,7 +76,6 @@ class _ChatPageState extends State<ChatPage> {
       }
     } catch (e) {
       debugPrint("Error fetching messages: $e");
-
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -89,7 +92,6 @@ class _ChatPageState extends State<ChatPage> {
           .build(),
     );
 
-    // Start connecting immediately
     _socket.connect();
 
     _socket.onConnect((_) {
@@ -100,30 +102,51 @@ class _ChatPageState extends State<ChatPage> {
         'joinRideRoom',
         widget.rideId.toString(),
         ack: (response) {
-          debugPrint(
-            'Room join confirmed — resyncing history in case anything was missed',
-          );
-
-          // Safety-net fetch:
-          // catches messages sent before this socket finished joining the room.
+          debugPrint('Room join confirmed — resyncing history');
           _fetchMessages();
         },
       );
     });
 
-    // Listen for new messages from the backend
+    // Listen for new messages
     _socket.on('newMessage', (data) {
       if (mounted) {
         setState(() {
-          // Prevent drawing the message twice if we already added it locally
           final messageExists = _messages.any((msg) => msg['id'] == data['id']);
-
           if (!messageExists) {
             _messages.add(data);
           }
+          // If sender was typing, remove them from typing map
+          if (data['sender_id'] != null) {
+            _typingUsers.remove(data['sender_id'].toString());
+          }
         });
-
         _scrollToBottom();
+      }
+    });
+
+    // 💬 Listen for Typing Events
+    _socket.on('userTyping', (data) {
+      if (data != null && data['userId']?.toString() != _currentUserId) {
+        final uid = data['userId']?.toString() ?? '';
+        final name = data['userName']?.toString() ?? 'Someone';
+        if (mounted && uid.isNotEmpty) {
+          setState(() {
+            _typingUsers[uid] = name;
+          });
+          _scrollToBottom();
+        }
+      }
+    });
+
+    _socket.on('userStoppedTyping', (data) {
+      if (data != null) {
+        final uid = data['userId']?.toString() ?? '';
+        if (mounted && _typingUsers.containsKey(uid)) {
+          setState(() {
+            _typingUsers.remove(uid);
+          });
+        }
       }
     });
 
@@ -152,9 +175,7 @@ class _ChatPageState extends State<ChatPage> {
                 ),
                 onPressed: () {
                   Navigator.pop(ctx); // Close dialog
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context); // Exit chat page to dashboard
-                  }
+                  Navigator.of(context).popUntil((route) => route.isFirst); // ⚡ Return straight to Dashboard
                 },
                 child: const Text("Return to Dashboard"),
               ),
@@ -171,7 +192,7 @@ class _ChatPageState extends State<ChatPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("You were removed from this ride by the host.")),
           );
-          if (Navigator.canPop(context)) Navigator.pop(context);
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
       }
     });
@@ -182,7 +203,7 @@ class _ChatPageState extends State<ChatPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("You were blocked from this ride by the host.")),
           );
-          if (Navigator.canPop(context)) Navigator.pop(context);
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
       }
     });
@@ -190,29 +211,61 @@ class _ChatPageState extends State<ChatPage> {
     _socket.onDisconnect((_) => debugPrint('Disconnected from Socket.io'));
   }
 
-  // REPLACE the entire _sendMessage function in chat_page.dart
+  void _onTextChanged(String text) {
+    if (text.trim().isNotEmpty) {
+      if (!_isCurrentlyTyping) {
+        _isCurrentlyTyping = true;
+        _socket.emit('typing', {
+          'rideId': widget.rideId,
+          'userId': _currentUserId,
+          'userName': _currentUserName,
+        });
+      }
+
+      _typingTimer?.cancel();
+      _typingTimer = Timer(const Duration(milliseconds: 1500), () {
+        _isCurrentlyTyping = false;
+        _socket.emit('stopTyping', {
+          'rideId': widget.rideId,
+          'userId': _currentUserId,
+        });
+      });
+    } else if (_isCurrentlyTyping) {
+      _isCurrentlyTyping = false;
+      _typingTimer?.cancel();
+      _socket.emit('stopTyping', {
+        'rideId': widget.rideId,
+        'userId': _currentUserId,
+      });
+    }
+  }
+
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    _messageController.clear(); // Clear UI immediately for better UX
+    _messageController.clear();
+
+    // Stop typing indicator immediately on send
+    _isCurrentlyTyping = false;
+    _typingTimer?.cancel();
+    _socket.emit('stopTyping', {
+      'rideId': widget.rideId,
+      'userId': _currentUserId,
+    });
 
     try {
-      // 1. Send to backend via REST API
       final response = await ApiService.postRequest('/messages/send', {
         'rideId': widget.rideId,
         'message': text,
       });
 
-      // 2. Instantly draw our own message without waiting for the socket echo!
       if (response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
-        final newMessage =
-            responseData['data']; // Your backend sends the payload in 'data'
+        final newMessage = responseData['data'];
 
         if (mounted) {
           setState(() {
-            // Double check it wasn't miraculously added by the socket already
             final messageExists = _messages.any(
               (msg) => msg['id'] == newMessage['id'],
             );
@@ -234,7 +287,6 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _scrollToBottom() {
-    // Wait a tiny bit for the UI to build the new message before scrolling
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -248,7 +300,11 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
-    // Clean up socket connections
+    _typingTimer?.cancel();
+    _socket.emit('stopTyping', {
+      'rideId': widget.rideId,
+      'userId': _currentUserId,
+    });
     _socket.emit('leaveRideRoom', widget.rideId);
     _socket.disconnect();
     _socket.dispose();
@@ -298,25 +354,31 @@ class _ChatPageState extends State<ChatPage> {
                     child: Container(
                       width: 36,
                       height: 36,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
+                            color: Colors.black12,
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.close, size: 18),
+                      child: const Icon(
+                        Icons.close,
+                        size: 20,
+                        color: Color(0xFF6B7280),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
 
-            /// Messages Area
+            const Divider(height: 1, color: Color(0xFFE5E7EB)),
+
+            /// Messages List
             Expanded(
               child: _isLoading
                   ? const Center(
@@ -324,29 +386,87 @@ class _ChatPageState extends State<ChatPage> {
                         color: Color(0xFF34A853),
                       ),
                     )
-                  : _messages.isEmpty
-                  ? const Center(
-                      child: Text(
-                        "No messages yet. Say hi!",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        final msg = _messages[index];
-                        final isMe = msg['sender_id'] == _currentUserId;
-                        return _buildMessageBubble(msg, isMe);
-                      },
-                    ),
+                  : _messages.isEmpty && _typingUsers.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 48,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "No messages yet.\nCoordinate pickup details here!",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final msg = _messages[index];
+                            final isMe = msg['sender_id'] != null &&
+                                msg['sender_id'].toString() == _currentUserId;
+
+                            return _buildMessageBubble(msg, isMe);
+                          },
+                        ),
             ),
 
-            /// Input area
+            /// 💬 Animated Typing Indicator Bubble (When peers are typing)
+            if (_typingUsers.isNotEmpty)
+              Container(
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "${_typingUsers.values.join(', ')} is typing",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const _TypingDotsAnimation(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            /// Message Input Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
@@ -371,6 +491,7 @@ class _ChatPageState extends State<ChatPage> {
                       ),
                       child: TextField(
                         controller: _messageController,
+                        onChanged: _onTextChanged,
                         decoration: const InputDecoration(
                           hintText: "Type a message...",
                           border: InputBorder.none,
@@ -405,7 +526,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  /// Helper widget to draw the chat bubbles based on who sent it
+  /// Helper widget to draw chat bubbles
   Widget _buildMessageBubble(Map<String, dynamic> msg, bool isMe) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -474,6 +595,66 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 💬 Bouncing 3-dot typing animation widget
+class _TypingDotsAnimation extends StatefulWidget {
+  const _TypingDotsAnimation();
+
+  @override
+  State<_TypingDotsAnimation> createState() => _TypingDotsAnimationState();
+}
+
+class _TypingDotsAnimationState extends State<_TypingDotsAnimation>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (index) {
+            final delay = index * 0.2;
+            final val = (_controller.value - delay) % 1.0;
+            final double bounce = val < 0.5
+                ? 4.0 * val * (0.5 - val)
+                : 0.0;
+
+            return Transform.translate(
+              offset: Offset(0, -bounce * 6),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                width: 4,
+                height: 4,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF34A853),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }

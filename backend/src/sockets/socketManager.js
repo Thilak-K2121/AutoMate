@@ -31,6 +31,15 @@ const socketManager = {
         console.log(`Socket ${socket.id} joined user room: user_${userId}`);
       });
 
+      // Real-time typing indicators in ride chat
+      socket.on('typing', ({ rideId, userName, userId }) => {
+        socket.to(`ride_${rideId}`).emit('userTyping', { rideId, userName, userId });
+      });
+
+      socket.on('stopTyping', ({ rideId, userId }) => {
+        socket.to(`ride_${rideId}`).emit('userStoppedTyping', { rideId, userId });
+      });
+
       socket.on('disconnect', () => {
         console.log(`Client disconnected: ${socket.id}`);
       });
