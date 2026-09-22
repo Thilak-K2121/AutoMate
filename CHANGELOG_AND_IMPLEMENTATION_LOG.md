@@ -85,3 +85,8 @@ DELETE FROM ride_participants WHERE user_id = $1;
 * **Rationale:** When a host ended or cancelled a ride, an unrefreshed or older client could still invoke `POST /rides/join`. Previously, `joinRide` only checked seat count and subsequently updated `status = 'active'`, resurrecting the cancelled ride and repopulating it on all user dashboards. 
 * **Fix:** Enforced strict status verification: `if (ride.status !== 'active') return res.status(400)` with custom messaging, and added `AND status IN ('active', 'full')` guards across all seat-mutating queries (`leaveRide`, `removePassenger`, `blockPassenger`).
 
+### 14. Phone Number Numeric & Length Validation
+* **Files:** [`frontend/flutter_app/lib/screens/register_page.dart`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/frontend/flutter_app/lib/screens/register_page.dart), [`backend/src/controllers/authController.js`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/backend/src/controllers/authController.js)
+* **Rationale:** Enforced strict numeric-only validation and minimum 10-digit / maximum 15-digit constraints on phone numbers across both the client (with `FilteringTextInputFormatter.digitsOnly` and custom error alerts) and server (`/^\d{10,15}$/` regex check on registration).
+
+

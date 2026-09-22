@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import 'home_page.dart';
 
@@ -35,7 +36,36 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (!email.endsWith('@bmsce.ac.in')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please use your college email")),
+        const SnackBar(content: Text("Please use your college email (@bmsce.ac.in)")),
+      );
+      return;
+    }
+
+    // 📱 Phone Validation: Numeric only & Minimum 10 digits
+    if (!RegExp(r'^[0-9]+$').hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Phone number must contain only numbers")),
+      );
+      return;
+    }
+
+    if (phone.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Phone number must have at least 10 digits")),
+      );
+      return;
+    }
+
+    if (phone.length > 15) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Phone number cannot exceed 15 digits")),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Password must be at least 6 characters long")),
       );
       return;
     }
@@ -85,6 +115,7 @@ class _RegisterPageState extends State<RegisterPage> {
     IconData icon, {
     bool obscure = false,
     TextInputType? type,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -101,6 +132,7 @@ class _RegisterPageState extends State<RegisterPage> {
               controller: controller,
               obscureText: obscure,
               keyboardType: type,
+              inputFormatters: inputFormatters,
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: const TextStyle(
@@ -195,6 +227,11 @@ class _RegisterPageState extends State<RegisterPage> {
                           _phoneController,
                           "e.g. 9876543210",
                           Icons.phone_outlined,
+                          type: TextInputType.phone,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(15),
+                          ],
                         ),
                         const SizedBox(height: 16),
 

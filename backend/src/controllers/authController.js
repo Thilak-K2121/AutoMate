@@ -15,6 +15,9 @@ const authController = {
       if (!email || !email.endsWith('@bmsce.ac.in')) {
         return res.status(403).json({ message: 'Only @bmsce.ac.in emails are allowed.' });
       }
+      if (!phone || !/^\d{10,15}$/.test(phone.trim())) {
+        return res.status(400).json({ message: 'Phone number must be numeric and contain at least 10 digits.' });
+      }
       if (!password || password.length < 6) {
         return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
       }
