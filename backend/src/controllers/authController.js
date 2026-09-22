@@ -91,12 +91,32 @@ const authController = {
   // GET /api/auth/me (Remains the same)
   getMe: async (req, res) => {
     try {
-      const result = await db.query('SELECT id, name, email, phone, rating,gender FROM users WHERE id = $1', [req.user.id]);
+      const result = await db.query('SELECT id, name, email, phone, rating, gender FROM users WHERE id = $1', [req.user.id]);
       if (result.rows.length === 0) return res.status(404).json({ message: 'User not found.' });
       res.status(200).json({ user: result.rows[0] });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server error fetching profile.' });
+    }
+  },
+
+  // POST /api/auth/fcm-token (Store user device push token)
+  saveFcmToken: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { fcmToken, deviceType } = req.body;
+
+      if (!fcmToken) {
+        return res.status(400).json({ message: 'fcmToken is required' });
+      }
+
+      const notificationService = require('../services/notificationService');
+      await notificationService.saveToken(userId, fcmToken, deviceType || 'android');
+
+      res.status(200).json({ message: 'FCM device token saved successfully' });
+    } catch (error) {
+      console.error('Error saving FCM token:', error);
+      res.status(500).json({ message: 'Server error saving FCM token' });
     }
   }
 };

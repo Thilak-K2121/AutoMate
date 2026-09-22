@@ -10,4 +10,7 @@ router.post('/login', authController.login);
 // Protected route to get current user data
 router.get('/me', verifyToken, authController.getMe);
 
+// Protected route to register/update device FCM token
+router.post('/fcm-token', verifyToken, authController.saveFcmToken);
+
 module.exports = router;

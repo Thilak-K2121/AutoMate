@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "565592116429",
+    "project_id": "automate-7f7fd",
+    "storage_bucket": "automate-7f7fd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:565592116429:android:d0da6fe6f25ee8972cad84",
+        "android_client_info": {
+          "package_name": "com.example.flutter_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "565592116429-dlriln8d2jfdkovmdct8cdktinr6cfld.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRKJoHvHaxPFk-ptWx65kFyLXKZFHbAc0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "565592116429-dlriln8d2jfdkovmdct8cdktinr6cfld.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

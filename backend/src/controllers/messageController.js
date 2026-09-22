@@ -67,7 +67,28 @@ const messageController = {
       // 4. Emit the message in real-time to everyone in the ride's socket room
       socketManager.getIO().to(`ride_${rideId}`).emit('newMessage', fullMessagePayload);
 
-      // 5. Return success response to the sender
+      // 5. Send push notification to all other participants in background/offline
+      try {
+        const notificationService = require('../services/notificationService');
+        const otherParticipants = await db.query(
+          'SELECT user_id FROM ride_participants WHERE ride_id = $1 AND user_id != $2',
+          [rideId, senderId]
+        );
+        if (otherParticipants.rows.length > 0) {
+          const pIds = otherParticipants.rows.map(r => r.user_id);
+          const senderShortName = userResult.rows[0]?.name?.split(' ')[0] || 'Someone';
+          notificationService.sendToUsers(
+            pIds,
+            `💬 ${senderShortName}`,
+            newMessage.message,
+            { rideId: rideId.toString(), type: 'CHAT_MESSAGE' }
+          );
+        }
+      } catch (pushErr) {
+        console.error('Chat push notification error:', pushErr.message);
+      }
+
+      // 6. Return success response to the sender
       res.status(201).json({ message: 'Message sent', data: fullMessagePayload });
     } catch (error) {
       console.error(error);

@@ -89,4 +89,17 @@ DELETE FROM ride_participants WHERE user_id = $1;
 * **Files:** [`frontend/flutter_app/lib/screens/register_page.dart`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/frontend/flutter_app/lib/screens/register_page.dart), [`backend/src/controllers/authController.js`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/backend/src/controllers/authController.js)
 * **Rationale:** Enforced strict numeric-only validation and minimum 10-digit / maximum 15-digit constraints on phone numbers across both the client (with `FilteringTextInputFormatter.digitsOnly` and custom error alerts) and server (`/^\d{10,15}$/` regex check on registration).
 
+### 15. Zero-Dollar ($0) Firebase Cloud Messaging (FCM) Push Notifications
+* **Files:** [`frontend/flutter_app/lib/services/fcm_service.dart`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/frontend/flutter_app/lib/services/fcm_service.dart), [`backend/src/services/notificationService.js`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/backend/src/services/notificationService.js), [`backend/src/controllers/rideController.js`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/backend/src/controllers/rideController.js), [`backend/src/controllers/messageController.js`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/backend/src/controllers/messageController.js), [`PUSH_NOTIFICATIONS_IMPLEMENTATION_GUIDE.md`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/PUSH_NOTIFICATIONS_IMPLEMENTATION_GUIDE.md)
+* **Rationale:** 
+  1. Built complete end-to-end FCM system push notifications across Android notification bar and iOS system tray at permanently zero cost ($0.00 / month on Google Firebase Free Spark Plan).
+  2. Dispatches real-time push alerts on:
+     - Passenger joins ride (`POST /rides/join`) ➔ Sent to host.
+     - Host cancels ride (`POST /rides/cancel`) ➔ Sent to all passengers.
+     - Host completes ride (`POST /rides/end`) ➔ Sent to all passengers.
+     - New chat message (`POST /messages/send`) ➔ Sent to background/offline participants.
+  3. **Smart In-Chat Suppression:** Automatically suppresses notification banners if the user is already inside the active `ChatPage` for that ride.
+  4. **Deep Linking:** Tapping the notification automatically launches and routes to the corresponding ride details or chat screen.
+
+
 

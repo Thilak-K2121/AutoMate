@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const socketManager = require('../sockets/socketManager');
+const notificationService = require('../services/notificationService');
 
 // ⚡ Zero-cost in-memory cache with standard 10-second TTL
 const cache = {
@@ -392,6 +393,14 @@ const rideController = {
             message: `${passengerName} just joined your ride to ${ride.destination}.`,
             icon_type: 'person_add'
           });
+
+        // 📲 Trigger System Push Notification to Host Device
+        notificationService.sendToUser(
+          ride.creator_id,
+          'New Passenger! 🚗',
+          `${passengerName} just joined your ride to ${ride.destination}.`,
+          { rideId: rideId.toString(), type: 'RIDE_JOIN' }
+        );
       }
 
       // 9. Update seat count and status
@@ -628,6 +637,12 @@ const rideController = {
         });
       }
 
+      // Fetch participants to send push notifications
+      const participantsRes = await db.query(
+        'SELECT user_id FROM ride_participants WHERE ride_id = $1 AND user_id != $2',
+        [rideId, userId]
+      );
+
       // Broadcast real-time ride ended to room & globally
       socketManager.getIO()
         .to(`ride_${rideId}`)
@@ -638,6 +653,17 @@ const rideController = {
 
       socketManager.getIO().emit('newRide');
       socketManager.getIO().emit('rideUpdated', { rideId, status: 'completed' });
+
+      // 📲 Trigger System Push Notification to all passengers
+      if (participantsRes.rows.length > 0) {
+        const pIds = participantsRes.rows.map(p => p.user_id);
+        notificationService.sendToUsers(
+          pIds,
+          'Ride Completed! 🏁',
+          'The host has concluded this ride. Thank you for riding!',
+          { rideId: rideId.toString(), type: 'RIDE_COMPLETED' }
+        );
+      }
 
       // ⚡ Auto-Purge notifications and messages for this ended ride
       try {
@@ -677,6 +703,12 @@ const rideController = {
         });
       }
 
+      // Fetch participants before deletion to send push notifications
+      const cancelParticipantsRes = await db.query(
+        'SELECT user_id FROM ride_participants WHERE ride_id = $1 AND user_id != $2',
+        [rideId, userId]
+      );
+
       // Broadcast real-time ride cancelled to room & globally
       socketManager.getIO()
         .to(`ride_${rideId}`)
@@ -688,6 +720,17 @@ const rideController = {
 
       socketManager.getIO().emit('newRide');
       socketManager.getIO().emit('rideUpdated', { rideId, status: 'cancelled' });
+
+      // 📲 Trigger System Push Notification to all passengers
+      if (cancelParticipantsRes.rows.length > 0) {
+        const pIds = cancelParticipantsRes.rows.map(p => p.user_id);
+        notificationService.sendToUsers(
+          pIds,
+          'Ride Cancelled ❌',
+          'The host has cancelled this ride.',
+          { rideId: rideId.toString(), type: 'RIDE_CANCELLED' }
+        );
+      }
 
       // Auto-Purge notifications and messages for this cancelled ride
       try {

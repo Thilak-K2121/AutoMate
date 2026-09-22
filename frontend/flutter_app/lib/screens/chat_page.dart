@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api_service.dart';
+import '../services/fcm_service.dart';
 import 'home_page.dart';
 
 class ChatPage extends StatefulWidget {
@@ -32,8 +33,22 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    FcmService.currentActiveChatRideId = widget.rideId;
     _connectSocket();
     _initializeChat();
+  }
+
+  @override
+  void dispose() {
+    if (FcmService.currentActiveChatRideId == widget.rideId) {
+      FcmService.currentActiveChatRideId = null;
+    }
+    _typingTimer?.cancel();
+    _messageController.dispose();
+    _scrollController.dispose();
+    _socket.emit('leaveRideRoom', widget.rideId.toString());
+    _socket.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeChat() async {

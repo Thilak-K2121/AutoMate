@@ -67,6 +67,22 @@ pool.query(`
 .then(() => console.log("✅ Blocked Passengers table verified!"))
 .catch(err => console.error("Database table creation error:", err));
 
+// 🚨 CREATE USER DEVICES TABLE (FCM Push Tokens)
+pool.query(`
+  CREATE TABLE IF NOT EXISTS user_devices (
+      id SERIAL PRIMARY KEY,
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      fcm_token TEXT NOT NULL,
+      device_type VARCHAR(20) DEFAULT 'android',
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, fcm_token)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_user_devices_user_id ON user_devices(user_id);
+`)
+.then(() => console.log("✅ User Devices table verified for FCM Push!"))
+.catch(err => console.error("User Devices table creation error:", err));
+
 // 🚨 ADD PAYMENT MODE COLUMN TO RIDES & VERIFY INDEXES
 pool.query(`
   ALTER TABLE rides

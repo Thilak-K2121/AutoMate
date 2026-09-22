@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api_service.dart';
+import '../services/fcm_service.dart';
 import 'create_ride_page.dart';
 import 'my_rides_page.dart';
 import 'map_page.dart';
@@ -34,6 +35,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _fetchDashboardData();
     _setupGlobalSocket();
+    FcmService.syncDeviceToken();
   }
 
   Future<void> _fetchDashboardData() async {
