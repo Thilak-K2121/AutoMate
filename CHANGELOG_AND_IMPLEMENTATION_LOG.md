@@ -99,7 +99,10 @@ DELETE FROM ride_participants WHERE user_id = $1;
      - Host completes ride (`POST /rides/end`) ➔ Sent to all passengers.
      - New chat message (`POST /messages/send`) ➔ Sent to background/offline participants.
   3. **Smart In-Chat Suppression:** Automatically suppresses notification banners if the user is already inside the active `ChatPage` for that ride.
-  4. **Deep Linking:** Tapping the notification automatically launches and routes to the corresponding ride details or chat screen.
+### 16. ChatPage Lifecycle & Dispose Cleanup
+* **File:** [`frontend/flutter_app/lib/screens/chat_page.dart`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/frontend/flutter_app/lib/screens/chat_page.dart)
+* **Rationale:** Consolidated duplicate `dispose()` method in `ChatPage` into a single lifecycle hook, ensuring proper cleanup of typing timers, text controllers, socket listeners, and `FcmService.currentActiveChatRideId` state.
+
 
 
 

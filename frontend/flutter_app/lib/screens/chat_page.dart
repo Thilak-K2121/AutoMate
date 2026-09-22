@@ -38,19 +38,6 @@ class _ChatPageState extends State<ChatPage> {
     _initializeChat();
   }
 
-  @override
-  void dispose() {
-    if (FcmService.currentActiveChatRideId == widget.rideId) {
-      FcmService.currentActiveChatRideId = null;
-    }
-    _typingTimer?.cancel();
-    _messageController.dispose();
-    _scrollController.dispose();
-    _socket.emit('leaveRideRoom', widget.rideId.toString());
-    _socket.dispose();
-    super.dispose();
-  }
-
   Future<void> _initializeChat() async {
     try {
       // 1. Get the current user ID and Name
@@ -327,12 +314,15 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
+    if (FcmService.currentActiveChatRideId == widget.rideId) {
+      FcmService.currentActiveChatRideId = null;
+    }
     _typingTimer?.cancel();
     _socket.emit('stopTyping', {
       'rideId': widget.rideId,
       'userId': _currentUserId,
     });
-    _socket.emit('leaveRideRoom', widget.rideId);
+    _socket.emit('leaveRideRoom', widget.rideId.toString());
     _socket.disconnect();
     _socket.dispose();
     _messageController.dispose();
