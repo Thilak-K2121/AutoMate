@@ -8,6 +8,11 @@ build/
 serviceAccountKey.json
 *serviceAccountKey*.json
 backend/src/config/serviceAccountKey.json
+google-services.json
+*google-services*.json
+**/google-services.json
+frontend/flutter_app/android/app/google-services.json
+frontend/flutter_app/android/google-services.json
 
 # Flutter
 .flutter-plugins

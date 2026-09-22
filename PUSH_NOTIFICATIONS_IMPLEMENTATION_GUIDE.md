@@ -37,7 +37,7 @@ flowchart TD
 - [x] Placed `google-services.json` in [`frontend/flutter_app/android/app/google-services.json`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/frontend/flutter_app/android/app/google-services.json).
 
 ### 🔒 Security Best Practice
-- `.gitignore` was configured to strictly block `serviceAccountKey.json` and `.env` files from ever being pushed to GitHub.
+- `.gitignore` was configured to strictly block `serviceAccountKey.json`, `google-services.json`, and `.env` files from ever being tracked or pushed to GitHub.
 - On production (Render), credentials can also be read securely via Environment Variables (`FIREBASE_SERVICE_ACCOUNT`).
 
 ### ✅ Step 2: Backend Service Account Key
