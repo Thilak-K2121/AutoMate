@@ -107,7 +107,9 @@ DELETE FROM ride_participants WHERE user_id = $1;
 * **File:** [`frontend/flutter_app/android/app/build.gradle.kts`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/frontend/flutter_app/android/app/build.gradle.kts)
 * **Rationale:** Enabled `isCoreLibraryDesugaringEnabled = true` with `com.android.tools:desugar_jdk_libs:2.0.4` dependency in Gradle to support Java 8+ time & notification APIs required by `flutter_local_notifications`.
 
-
-
-
-
+### 18. Android 13+ Notification Permissions & Multi-Architecture Release APK Build
+* **Files:** [`frontend/flutter_app/android/app/src/main/AndroidManifest.xml`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/frontend/flutter_app/android/app/src/main/AndroidManifest.xml), [`frontend/flutter_app/android/app/build.gradle.kts`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/frontend/flutter_app/android/app/build.gradle.kts)
+* **Rationale:**
+  1. Added `POST_NOTIFICATIONS`, `VIBRATE`, and `RECEIVE_BOOT_COMPLETED` permissions along with the default Firebase notification channel metadata in `AndroidManifest.xml` to ensure full compatibility with Android 13+ (API 33+) physical devices.
+  2. Bumped `desugar_jdk_libs` to `2.1.4` to satisfy `flutter_local_notifications` requirements.
+  3. Built standalone multi-architecture Release APK (`app-release.apk`) including `arm64-v8a`, `armeabi-v7a`, and `x86_64` AOT native binaries, preventing native crashes when running on real Android hardware.
