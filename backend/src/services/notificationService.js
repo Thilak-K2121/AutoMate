@@ -7,23 +7,25 @@ let isInitialized = false;
 
 try {
   const serviceAccountPath = path.join(__dirname, '../config/serviceAccountKey.json');
+  const certFn = (sa) => (admin.cert ? admin.cert(sa) : (admin.credential && admin.credential.cert ? admin.credential.cert(sa) : sa));
   
   if (fs.existsSync(serviceAccountPath)) {
     const serviceAccount = require(serviceAccountPath);
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
+      credential: certFn(serviceAccount)
     });
     isInitialized = true;
-    console.log('✅ Firebase Admin SDK initialized successfully for FCM.');
+    console.log('✅ Firebase Admin SDK initialized successfully for FCM from local file.');
   } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+    const serviceAccount = typeof raw === 'string' ? JSON.parse(raw) : raw;
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
+      credential: certFn(serviceAccount)
     });
     isInitialized = true;
-    console.log('✅ Firebase Admin SDK initialized via environment variable.');
+    console.log('✅ Firebase Admin SDK initialized successfully via environment variable.');
   } else {
-    console.warn('⚠️ Firebase serviceAccountKey.json not found. Push notifications will be skipped.');
+    console.warn('⚠️ Firebase serviceAccountKey.json not found and FIREBASE_SERVICE_ACCOUNT env is unset. Push notifications will be skipped.');
   }
 } catch (error) {
   console.error('❌ Failed to initialize Firebase Admin SDK:', error.message);
