@@ -48,7 +48,11 @@ const notificationService = {
 
   // 🚀 Send Push to a single user
   sendToUser: async (userId, title, body, data = {}) => {
-    if (!isInitialized || !userId) return;
+    if (!isInitialized) {
+      console.warn('⚠️ Push notification skipped: Firebase Admin SDK is not initialized on this server.');
+      return;
+    }
+    if (!userId) return;
 
     try {
       const result = await db.query(
@@ -56,9 +60,13 @@ const notificationService = {
         [userId]
       );
 
-      if (result.rows.length === 0) return;
+      if (result.rows.length === 0) {
+        console.log(`ℹ️ No registered FCM devices found for user ${userId}. Push skipped.`);
+        return;
+      }
 
       const tokens = result.rows.map(r => r.fcm_token);
+      console.log(`🔔 Sending push notification to user ${userId} (${tokens.length} device tokens)...`);
 
       const messagePayload = {
         notification: {
@@ -80,6 +88,7 @@ const notificationService = {
       };
 
       const response = await admin.messaging().sendEachForMulticast(messagePayload);
+      console.log(`✅ Push sent: ${response.successCount} succeeded, ${response.failureCount} failed.`);
       
       // Clean up dead/invalid tokens
       if (response.failureCount > 0) {
@@ -103,7 +112,11 @@ const notificationService = {
 
   // 🚀 Send Push to multiple users (e.g. all ride participants)
   sendToUsers: async (userIds, title, body, data = {}) => {
-    if (!isInitialized || !Array.isArray(userIds) || userIds.length === 0) return;
+    if (!isInitialized) {
+      console.warn('⚠️ Push notification skipped: Firebase Admin SDK is not initialized on this server.');
+      return;
+    }
+    if (!Array.isArray(userIds) || userIds.length === 0) return;
 
     try {
       const result = await db.query(
@@ -111,9 +124,13 @@ const notificationService = {
         [userIds]
       );
 
-      if (result.rows.length === 0) return;
+      if (result.rows.length === 0) {
+        console.log(`ℹ️ No registered FCM devices found for target users. Push skipped.`);
+        return;
+      }
 
       const tokens = result.rows.map(r => r.fcm_token);
+      console.log(`🔔 Sending multicast push to ${tokens.length} target device tokens...`);
 
       const messagePayload = {
         notification: {
@@ -134,7 +151,8 @@ const notificationService = {
         tokens
       };
 
-      await admin.messaging().sendEachForMulticast(messagePayload);
+      const response = await admin.messaging().sendEachForMulticast(messagePayload);
+      console.log(`✅ Multicast push sent: ${response.successCount} succeeded, ${response.failureCount} failed.`);
     } catch (error) {
       console.error('Error sending multicast push notifications:', error.message);
     }
