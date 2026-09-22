@@ -1,31 +1,33 @@
-const admin = require('firebase-admin');
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
+const { getMessaging } = require('firebase-admin/messaging');
 const path = require('path');
 const fs = require('fs');
 const db = require('../config/db');
 
-let isInitialized = false;
+let messagingInstance = null;
 
 try {
   const serviceAccountPath = path.join(__dirname, '../config/serviceAccountKey.json');
-  const certFn = (sa) => (admin.cert ? admin.cert(sa) : (admin.credential && admin.credential.cert ? admin.credential.cert(sa) : sa));
-  
+  let serviceAccount = null;
+
   if (fs.existsSync(serviceAccountPath)) {
-    const serviceAccount = require(serviceAccountPath);
-    admin.initializeApp({
-      credential: certFn(serviceAccount)
-    });
-    isInitialized = true;
-    console.log('✅ Firebase Admin SDK initialized successfully for FCM from local file.');
+    serviceAccount = require(serviceAccountPath);
+    console.log('📄 Found local serviceAccountKey.json.');
   } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-    const serviceAccount = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    admin.initializeApp({
-      credential: certFn(serviceAccount)
-    });
-    isInitialized = true;
-    console.log('✅ Firebase Admin SDK initialized successfully via environment variable.');
+    serviceAccount = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    console.log('🌐 Found FIREBASE_SERVICE_ACCOUNT environment variable.');
+  }
+
+  if (serviceAccount) {
+    const app = getApps().length > 0 
+      ? getApps()[0] 
+      : initializeApp({ credential: cert(serviceAccount) });
+    
+    messagingInstance = getMessaging(app);
+    console.log('✅ Firebase Admin Messaging initialized successfully for FCM.');
   } else {
-    console.warn('⚠️ Firebase serviceAccountKey.json not found and FIREBASE_SERVICE_ACCOUNT env is unset. Push notifications will be skipped.');
+    console.warn('⚠️ Firebase credentials not found. Push notifications will be skipped.');
   }
 } catch (error) {
   console.error('❌ Failed to initialize Firebase Admin SDK:', error.message);
@@ -50,8 +52,8 @@ const notificationService = {
 
   // 🚀 Send Push to a single user
   sendToUser: async (userId, title, body, data = {}) => {
-    if (!isInitialized) {
-      console.warn('⚠️ Push notification skipped: Firebase Admin SDK is not initialized on this server.');
+    if (!messagingInstance) {
+      console.warn('⚠️ Push notification skipped: Firebase Admin Messaging is not initialized on this server.');
       return;
     }
     if (!userId) return;
@@ -89,7 +91,7 @@ const notificationService = {
         tokens
       };
 
-      const response = await admin.messaging().sendEachForMulticast(messagePayload);
+      const response = await messagingInstance.sendEachForMulticast(messagePayload);
       console.log(`✅ Push sent: ${response.successCount} succeeded, ${response.failureCount} failed.`);
       
       // Clean up dead/invalid tokens
@@ -114,8 +116,8 @@ const notificationService = {
 
   // 🚀 Send Push to multiple users (e.g. all ride participants)
   sendToUsers: async (userIds, title, body, data = {}) => {
-    if (!isInitialized) {
-      console.warn('⚠️ Push notification skipped: Firebase Admin SDK is not initialized on this server.');
+    if (!messagingInstance) {
+      console.warn('⚠️ Push notification skipped: Firebase Admin Messaging is not initialized on this server.');
       return;
     }
     if (!Array.isArray(userIds) || userIds.length === 0) return;
@@ -153,7 +155,7 @@ const notificationService = {
         tokens
       };
 
-      const response = await admin.messaging().sendEachForMulticast(messagePayload);
+      const response = await messagingInstance.sendEachForMulticast(messagePayload);
       console.log(`✅ Multicast push sent: ${response.successCount} succeeded, ${response.failureCount} failed.`);
     } catch (error) {
       console.error('Error sending multicast push notifications:', error.message);
