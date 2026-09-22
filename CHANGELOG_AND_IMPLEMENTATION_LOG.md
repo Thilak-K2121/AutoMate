@@ -103,6 +103,11 @@ DELETE FROM ride_participants WHERE user_id = $1;
 * **File:** [`frontend/flutter_app/lib/screens/chat_page.dart`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/frontend/flutter_app/lib/screens/chat_page.dart)
 * **Rationale:** Consolidated duplicate `dispose()` method in `ChatPage` into a single lifecycle hook, ensuring proper cleanup of typing timers, text controllers, socket listeners, and `FcmService.currentActiveChatRideId` state.
 
+### 17. Android Core Library Desugaring for Local Notifications
+* **File:** [`frontend/flutter_app/android/app/build.gradle.kts`](file:///c:/Users/user/Desktop/AutoMate/AutoMate/frontend/flutter_app/android/app/build.gradle.kts)
+* **Rationale:** Enabled `isCoreLibraryDesugaringEnabled = true` with `com.android.tools:desugar_jdk_libs:2.0.4` dependency in Gradle to support Java 8+ time & notification APIs required by `flutter_local_notifications`.
+
+
 
 
 
