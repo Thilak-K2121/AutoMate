@@ -289,6 +289,18 @@ const rideController = {
 
       const ride = rideCheck.rows[0];
 
+      // 🚫 Prevent joining ended or cancelled rides (prevents resurrecting inactive rides from stale/old clients)
+      if (ride.status !== 'active') {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          message: ride.status === 'completed'
+            ? 'This ride has already ended.'
+            : ride.status === 'cancelled'
+              ? 'This ride has been cancelled.'
+              : 'This ride is no longer active.'
+        });
+      }
+
       // 🚫 Prevent joining own ride as passenger (Strict equality check)
       if (ride.creator_id === userId) {
         await client.query('ROLLBACK');
@@ -432,7 +444,7 @@ const rideController = {
       }
 
       await client.query(
-        "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1",
+        "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1 AND status IN ('active', 'full')",
         [rideId]
       );
 
@@ -521,7 +533,7 @@ const rideController = {
 
       if (deleteRes.rowCount > 0) {
         await client.query(
-          "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1",
+          "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1 AND status IN ('active', 'full')",
           [rideId]
         );
       }
@@ -573,7 +585,7 @@ const rideController = {
 
       if (deleteRes.rowCount > 0) {
         await client.query(
-          "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1",
+          "UPDATE rides SET seats_available = seats_available + 1, status = 'active' WHERE id = $1 AND status IN ('active', 'full')",
           [rideId]
         );
       }
@@ -648,20 +660,72 @@ const rideController = {
     }
   },
 
-  // ✅ GET USER STATS
+  // ✅ CANCEL RIDE (Host Cancelling Ride)
+  cancelRide: async (req, res) => {
+    try {
+      const { rideId } = req.body;
+      const userId = req.user.id;
+
+      const result = await db.query(
+        "UPDATE rides SET status = 'cancelled' WHERE id = $1 AND creator_id = $2 RETURNING *",
+        [rideId, userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(403).json({
+          message: 'Not authorized or ride not found'
+        });
+      }
+
+      // Broadcast real-time ride cancelled to room & globally
+      socketManager.getIO()
+        .to(`ride_${rideId}`)
+        .emit('rideEnded', {
+          message: 'The host has cancelled this ride.',
+          rideId,
+          status: 'cancelled'
+        });
+
+      socketManager.getIO().emit('newRide');
+      socketManager.getIO().emit('rideUpdated', { rideId, status: 'cancelled' });
+
+      // Auto-Purge notifications and messages for this cancelled ride
+      try {
+        await db.query('DELETE FROM notifications WHERE ride_id = $1', [rideId]);
+        await db.query('DELETE FROM messages WHERE ride_id = $1', [rideId]);
+      } catch (err) {
+        console.error('Failed to cleanup cancelled ride data:', err);
+      }
+
+      // Invalidate cache
+      cache.clearAll();
+
+      res.status(200).json({
+        message: 'Ride cancelled successfully'
+      });
+
+    } catch (error) {
+      console.error('Error cancelling ride:', error);
+      res.status(500).json({ message: 'Server error cancelling ride' });
+    }
+  },
+
+  // ✅ GET USER STATS (Filtered strictly by completed rides)
   getUserStats: async (req, res) => {
     try {
       const userId = req.user.id;
 
+      // Count completed rides the user hosted
       const hostedCount = await db.query(
-        'SELECT COUNT(*) FROM rides WHERE creator_id = $1', 
+        "SELECT COUNT(*) FROM rides WHERE creator_id = $1 AND status = 'completed'", 
         [userId]
       );
 
+      // Count completed rides the user joined as passenger
       const joinedCount = await db.query(
         `SELECT COUNT(*) FROM ride_participants rp 
          JOIN rides r ON rp.ride_id = r.id 
-         WHERE rp.user_id = $1 AND r.creator_id != $1`,
+         WHERE rp.user_id = $1 AND r.creator_id != $1 AND r.status = 'completed'`,
         [userId]
       );
 

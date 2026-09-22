@@ -59,21 +59,30 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
     });
 
     // 🚨 Real-Time Catch: Host Ended / Cancelled Ride
-    _socket.on('rideEnded', (_) {
+    _socket.on('rideEnded', (data) {
+      final isCancelled = data != null && data['status'] == 'cancelled';
+      final dialogTitle = isCancelled ? "Ride Cancelled" : "Ride Ended";
+      final dialogMsg = isCancelled
+          ? "The host has cancelled this ride."
+          : "The host has completed this ride.";
+
       if (mounted) {
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.red),
-                SizedBox(width: 8),
-                Text("Ride Ended"),
+                Icon(
+                  isCancelled ? Icons.cancel_outlined : Icons.check_circle_outline,
+                  color: isCancelled ? Colors.red : const Color(0xFF34A853),
+                ),
+                const SizedBox(width: 8),
+                Text(dialogTitle),
               ],
             ),
-            content: const Text("The host has ended/cancelled this ride."),
+            content: Text(dialogMsg),
             actions: [
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -81,8 +90,10 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () {
-                  Navigator.pop(ctx); // Close dialog
-                  Navigator.of(context).popUntil((route) => route.isFirst); // ⚡ Return straight to Dashboard
+                  Navigator.of(ctx, rootNavigator: true).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const HomePage()),
+                    (route) => false,
+                  );
                 },
                 child: const Text("Return to Dashboard"),
               ),
@@ -175,24 +186,34 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
     }
   }
 
-  // NEW: The End Ride Logic
-  // REPLACE this entire function in metro_ride_details_page.dart
-  Future<void> _handleEndRide() async {
-    // 1. Show a confirmation dialog
-    final bool? confirm = await showDialog(
+  // 🛑 Host Cancels Ride (Sets status = 'cancelled')
+  Future<void> _handleCancelRide() async {
+    final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("End Ride"),
-        content: const Text("Are you sure you want to end this ride?"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.cancel_outlined, color: Colors.red),
+            SizedBox(width: 8),
+            Text("Cancel Ride?"),
+          ],
+        ),
+        content: const Text(
+          "Are you sure you want to cancel this ride? All joined passengers will be notified.",
+        ),
         actions: [
           TextButton(
-            onPressed: () =>
-                Navigator.pop(context, false), // Fixed to onPressed
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Keep Ride", style: TextStyle(color: Colors.grey)),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true), // Fixed to onPressed
-            child: const Text("End Ride", style: TextStyle(color: Colors.red)),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Yes, Cancel"),
           ),
         ],
       ),
@@ -203,22 +224,57 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
     setState(() => _isLoading = true);
 
     try {
+      final res = await ApiService.postRequest('/rides/cancel', {
+        'rideId': widget.rideId,
+      });
+
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Ride cancelled successfully")),
+          );
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      } else {
+        final errorData = jsonDecode(res.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorData['message'] ?? "Failed to cancel ride")),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Network error cancelling ride")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // 🏁 Host Completes/Ends Ride (Sets status = 'completed' so it counts towards profile stats)
+  Future<void> _handleEndRide() async {
+    setState(() => _isLoading = true);
+
+    try {
       final res = await ApiService.postRequest('/rides/end', {
         'rideId': widget.rideId,
       });
       if (res.statusCode == 200) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Ride ended successfully! 🏁")),
+            const SnackBar(content: Text("Ride completed successfully! 🏁")),
           );
-          Navigator.pop(context, true); // Pop back to home page
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
       } else {
         final errorData = jsonDecode(res.body);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(errorData['message'] ?? "Failed to end ride"),
+              content: Text(errorData['message'] ?? "Failed to complete ride"),
             ),
           );
         }
@@ -227,7 +283,7 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Network error ending ride. Is backend running?"),
+            content: Text("Network error completing ride."),
           ),
         );
       }
@@ -900,60 +956,89 @@ class _MetroRideDetailsPageState extends State<MetroRideDetailsPage> {
                                 if (!isCompleted && (isHost || isParticipant)) {
                                   return Column(
                                     children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: GestureDetector(
-                                              onTap: () => Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      ChatPage(
-                                                        rideId: widget.rideId,
-                                                      ),
+                                      if (isHost) ...[
+                                        // Row 1 for Host: Chat and Cancel Ride (Red)
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: () => Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        ChatPage(
+                                                          rideId: widget.rideId,
+                                                        ),
+                                                  ),
+                                                ),
+                                                child: _actionButton(
+                                                  "Chat",
+                                                  const Color(0xFF34A853),
                                                 ),
                                               ),
-                                              child: _actionButton(
-                                                "Chat",
-                                                isCompleted
-                                                    ? Colors.grey
-                                                    : const Color(0xFF34A853),
+                                            ),
+                                            const SizedBox(width: 14),
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: _handleCancelRide,
+                                                child: _actionButton(
+                                                  "Cancel Ride",
+                                                  Colors.red.shade600,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 14),
-
-                                          Expanded(
-                                            child: isHost
-                                                ? GestureDetector(
-                                                    onTap: _handleEndRide,
-                                                    child: _actionButton(
-                                                      "End Ride",
-                                                      Colors.red.shade500,
-                                                    ),
-                                                  )
-                                                : GestureDetector(
-                                                    onTap: () =>
-                                                        _driverPhone.isNotEmpty
-                                                        ? _makePhoneCall(
-                                                            _driverPhone,
-                                                          )
-                                                        : null,
-                                                    child: _actionButton(
-                                                      "Call Host",
-                                                      _driverPhone.isNotEmpty
-                                                          ? const Color(
-                                                              0xFF2F80ED,
-                                                            )
-                                                          : Colors.grey,
-                                                    ),
-                                                  ),
-                                          ),
-                                        ],
-                                      ),
-
-                                      if (isParticipant && !isHost) ...[
+                                          ],
+                                        ),
                                         const SizedBox(height: 14),
+
+                                        // Row 2 for Host: Swipe Left-to-Right to Complete/End Ride
+                                        _SwipeToCompleteSlider(
+                                          onComplete: _handleEndRide,
+                                          isLoading: _isLoading,
+                                        ),
+                                      ] else ...[
+                                        // Row 1 for Passenger: Chat and Call Host
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: () => Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        ChatPage(
+                                                          rideId: widget.rideId,
+                                                        ),
+                                                  ),
+                                                ),
+                                                child: _actionButton(
+                                                  "Chat",
+                                                  const Color(0xFF34A853),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 14),
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: () =>
+                                                    _driverPhone.isNotEmpty
+                                                    ? _makePhoneCall(
+                                                        _driverPhone,
+                                                      )
+                                                    : null,
+                                                child: _actionButton(
+                                                  "Call Host",
+                                                  _driverPhone.isNotEmpty
+                                                      ? const Color(0xFF2F80ED)
+                                                      : Colors.grey,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 14),
+
+                                        // Row 2 for Passenger: Leave Ride
                                         GestureDetector(
                                           onTap: _handleLeaveRide,
                                           child: Container(
@@ -1220,6 +1305,146 @@ class _NavItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(label, style: TextStyle(fontSize: 12, color: color)),
       ],
+    );
+  }
+}
+
+/// 🏁 Swipe left-to-right slider button to end/complete a ride
+class _SwipeToCompleteSlider extends StatefulWidget {
+  final Future<void> Function() onComplete;
+  final bool isLoading;
+
+  const _SwipeToCompleteSlider({
+    required this.onComplete,
+    required this.isLoading,
+  });
+
+  @override
+  State<_SwipeToCompleteSlider> createState() => _SwipeToCompleteSliderState();
+}
+
+class _SwipeToCompleteSliderState extends State<_SwipeToCompleteSlider> {
+  double _dragPosition = 0.0;
+  bool _completed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxDrag = constraints.maxWidth - 52;
+
+        return Container(
+          height: 52,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF137333), Color(0xFF34A853)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF34A853).withValues(alpha: 0.35),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              // Center Text Prompt
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.isLoading ? "Completing Ride..." : "Slide to End Ride",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    if (!widget.isLoading) ...[
+                      const SizedBox(width: 6),
+                      const Icon(Icons.keyboard_double_arrow_right, color: Colors.white70, size: 20),
+                    ],
+                  ],
+                ),
+              ),
+
+              // Draggable Circular Thumb Knob
+              Positioned(
+                left: _dragPosition,
+                child: GestureDetector(
+                  onHorizontalDragUpdate: (details) {
+                    if (_completed || widget.isLoading) return;
+                    setState(() {
+                      _dragPosition = (_dragPosition + details.delta.dx)
+                          .clamp(0.0, maxDrag);
+                    });
+                  },
+                  onHorizontalDragEnd: (details) async {
+                    if (_completed || widget.isLoading) return;
+                    if (_dragPosition >= maxDrag * 0.75) {
+                      setState(() {
+                        _dragPosition = maxDrag;
+                        _completed = true;
+                      });
+                      await widget.onComplete();
+                      if (mounted) {
+                        setState(() {
+                          _dragPosition = 0.0;
+                          _completed = false;
+                        });
+                      }
+                    } else {
+                      setState(() {
+                        _dragPosition = 0.0;
+                      });
+                    }
+                  },
+                  child: Container(
+                    width: 46,
+                    height: 46,
+                    margin: const EdgeInsets.only(left: 3),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: widget.isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Color(0xFF34A853),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Color(0xFF34A853),
+                              size: 24,
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

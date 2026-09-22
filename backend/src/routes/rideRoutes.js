@@ -14,6 +14,7 @@ router.get('/nearby', rideController.getNearbyRides);
 router.post('/join', rideController.joinRide);
 router.post('/leave', rideController.leaveRide);
 router.post('/end', rideController.endRide);
+router.post('/cancel', rideController.cancelRide);
 router.post('/:id/remove', rideController.removePassenger);
 router.post('/:id/block', rideController.blockPassenger);
 router.get('/history', rideController.getRideHistory);

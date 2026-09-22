@@ -1598,116 +1598,106 @@ class _ProfilePageState extends State<ProfilePage> {
   // ===========================================================================
   // BOTTOM NAV
   // ===========================================================================
+  // 6. BOTTOM NAVIGATION (Synchronized with HomePage Design)
+  // ===========================================================================
 
   Widget _buildBottomNavigation() {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-        child: Container(
-          height: 76,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(.97),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white, width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: ink.withOpacity(.11),
-                blurRadius: 30,
-                offset: const Offset(0, 9),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.06),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
           ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
           child: Row(
             children: [
               Expanded(
                 child: _navItem(
                   icon: Icons.home_rounded,
-                  label: 'Home',
+                  label: "Home",
                   active: false,
                   onTap: () {
                     Navigator.popUntil(context, (route) => route.isFirst);
                   },
                 ),
               ),
-
               Expanded(
                 child: _navItem(
                   icon: Icons.history_rounded,
-                  label: 'Rides',
+                  label: "Rides",
                   active: false,
                   onTap: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (_) => const MyRidesPage()),
+                      MaterialPageRoute(
+                        builder: (_) => const MyRidesPage(),
+                      ),
                     );
                   },
                 ),
               ),
-
               SizedBox(
-                width: 76,
+                width: 64,
+                height: 64,
                 child: Center(
-                  child: GestureDetector(
-                    onTap: () async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CreateRidePage(),
-                        ),
-                      );
-
-                      if (result == true) {
-                        _fetchProfileStats();
-                      }
-                    },
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [blueLight, blue],
-                        ),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: blue.withOpacity(.28),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
+                  child: Material(
+                    color: const Color(0xFF2F80ED),
+                    shape: const CircleBorder(),
+                    elevation: 3,
+                    shadowColor: const Color(0xFF2F80ED).withOpacity(0.4),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CreateRidePage(),
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.add_rounded,
-                        color: Colors.white,
-                        size: 28,
+                        );
+                        if (result == true) {
+                          _fetchProfileStats();
+                        }
+                      },
+                      child: const SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-
               Expanded(
                 child: _navItem(
-                  icon: Icons.map_outlined,
-                  label: 'Map',
+                  icon: Icons.map_rounded,
+                  label: "Map",
                   active: false,
                   onTap: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (_) => const MapPage()),
+                      MaterialPageRoute(
+                        builder: (_) => const MapPage(),
+                      ),
                     );
                   },
                 ),
               ),
-
               Expanded(
                 child: _navItem(
                   icon: Icons.person_rounded,
-                  label: 'Profile',
+                  label: "Profile",
                   active: true,
                   onTap: () {},
                 ),
@@ -1725,34 +1715,33 @@ class _ProfilePageState extends State<ProfilePage> {
     required bool active,
     required VoidCallback onTap,
   }) {
-    final color = active ? greenDark : mutedLight;
+    final color = active ? const Color(0xFF34A853) : const Color(0xFF6B7280);
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 38,
-            height: 30,
-            decoration: BoxDecoration(
-              color: active ? green.withOpacity(.11) : Colors.transparent,
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Icon(icon, color: color, size: active ? 21 : 20),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        splashFactory: InkRipple.splashFactory,
+        highlightColor: const Color(0xFF34A853).withOpacity(0.08),
+        splashColor: const Color(0xFF34A853).withOpacity(0.12),
+        child: SizedBox(
+          height: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: active ? FontWeight.bold : FontWeight.w500,
+                  color: color,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 8.8,
-              fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

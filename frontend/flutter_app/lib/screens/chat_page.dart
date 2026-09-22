@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api_service.dart';
+import 'home_page.dart';
 
 class ChatPage extends StatefulWidget {
   final String rideId;
@@ -153,20 +154,29 @@ class _ChatPageState extends State<ChatPage> {
     // 🚨 Real-Time Catch: Host Ended / Cancelled Ride
     _socket.on('rideEnded', (data) {
       debugPrint('Chat: Ride ended event received');
+      final isCancelled = data != null && data['status'] == 'cancelled';
+      final dialogTitle = isCancelled ? "Ride Cancelled" : "Ride Ended";
+      final dialogMsg = isCancelled
+          ? "The host has cancelled this ride. Chat is no longer active."
+          : "The host has completed this ride. Chat is no longer active.";
+
       if (mounted) {
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.red),
-                SizedBox(width: 8),
-                Text("Ride Ended"),
+                Icon(
+                  isCancelled ? Icons.cancel_outlined : Icons.check_circle_outline,
+                  color: isCancelled ? Colors.red : const Color(0xFF34A853),
+                ),
+                const SizedBox(width: 8),
+                Text(dialogTitle),
               ],
             ),
-            content: const Text("The host has ended/cancelled this ride. Chat is no longer active."),
+            content: Text(dialogMsg),
             actions: [
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -174,8 +184,10 @@ class _ChatPageState extends State<ChatPage> {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () {
-                  Navigator.pop(ctx); // Close dialog
-                  Navigator.of(context).popUntil((route) => route.isFirst); // ⚡ Return straight to Dashboard
+                  Navigator.of(ctx, rootNavigator: true).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const HomePage()),
+                    (route) => false,
+                  );
                 },
                 child: const Text("Return to Dashboard"),
               ),

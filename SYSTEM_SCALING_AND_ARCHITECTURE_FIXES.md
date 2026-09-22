@@ -163,6 +163,23 @@ AutoMate is architected to scale to thousands of university students completely 
      * When passenger: *"You are currently in an active ride. Do you want to leave your current ride and join this one?"* ➔ Button: **"Leave & Join Ride"**
   2. Reserved *"Cancel & Create New Ride"* strictly for `CreateRidePage`.
 
+### 🛠️ Bug 5: Stale Client / Older Version Ride Resurrection (Zombie Ride Fix)
+* **Problem:** When a host ended or cancelled a ride, an unrefreshed client or older mobile client remaining on the ride screen could still tap "Join Ride" (`POST /rides/join`). Because `joinRide` previously only verified seat count and subsequently updated `status = (newSeats === 0 ? 'full' : 'active')`, joining an ended/cancelled ride revived its status to `'active'`, resurrecting the completed ride back onto everyone's dashboard.
+* **Solution:**
+  1. **Strict Active Status Check:** Added an explicit lock and status validator in `joinRide`:
+     ```javascript
+     if (ride.status !== 'active') {
+       await client.query('ROLLBACK');
+       return res.status(400).json({
+         message: ride.status === 'completed'
+           ? 'This ride has already ended.'
+           : 'This ride has been cancelled or is no longer active.'
+       });
+     }
+     ```
+  2. **Atomic Status Mutation Scoping:** Constrained `leaveRide`, `removePassenger`, and `blockPassenger` updates with `WHERE id = $1 AND status IN ('active', 'full')` so no inactive or historical ride status can be mutated.
+
+
 ---
 
 ## 4. Database Schema & Indexing Reference
