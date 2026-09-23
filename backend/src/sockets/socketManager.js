@@ -40,6 +40,11 @@ const socketManager = {
         socket.to(`ride_${rideId}`).emit('userStoppedTyping', { rideId, userId });
       });
 
+      // Real-time message read receipts (Double Blue Ticks)
+      socket.on('markMessagesRead', ({ rideId, userId }) => {
+        socket.to(`ride_${rideId}`).emit('messagesRead', { rideId, readerId: userId });
+      });
+
       socket.on('disconnect', () => {
         console.log(`Client disconnected: ${socket.id}`);
       });

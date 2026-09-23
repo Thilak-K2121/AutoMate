@@ -72,8 +72,21 @@ class _ChatPageState extends State<ChatPage> {
 
         if (mounted) {
           setState(() {
-            _messages = msgData['messages'];
+            _messages = List<Map<String, dynamic>>.from(
+              (msgData['messages'] as List).map((m) {
+                final map = Map<String, dynamic>.from(m);
+                map['is_read'] = true;
+                map['is_delivered'] = true;
+                return map;
+              }),
+            );
             _isLoading = false;
+          });
+
+          // Inform room that active user has read messages
+          _socket.emit('markMessagesRead', {
+            'rideId': widget.rideId,
+            'userId': _currentUserId,
           });
 
           _scrollToBottom();
@@ -117,9 +130,22 @@ class _ChatPageState extends State<ChatPage> {
     _socket.on('newMessage', (data) {
       if (mounted) {
         setState(() {
-          final messageExists = _messages.any((msg) => msg['id'] == data['id']);
-          if (!messageExists) {
-            _messages.add(data);
+          final msgMap = Map<String, dynamic>.from(data);
+          final isFromMe = msgMap['sender_id']?.toString() == _currentUserId;
+
+          final existingIndex = _messages.indexWhere((msg) => msg['id'] == msgMap['id']);
+          if (existingIndex == -1) {
+            msgMap['is_delivered'] = true;
+            msgMap['is_read'] = false;
+            _messages.add(msgMap);
+          }
+
+          if (!isFromMe) {
+            // Read receipt: notify room that we are currently viewing this message
+            _socket.emit('markMessagesRead', {
+              'rideId': widget.rideId,
+              'userId': _currentUserId,
+            });
           }
         });
         // If sender was typing, remove them from typing notifier
@@ -132,6 +158,20 @@ class _ChatPageState extends State<ChatPage> {
           }
         }
         _scrollToBottom();
+      }
+    });
+
+    // 👁️ Listen for Read Receipts (Double Blue Ticks)
+    _socket.on('messagesRead', (data) {
+      if (mounted && data != null && data['rideId']?.toString() == widget.rideId) {
+        setState(() {
+          for (var msg in _messages) {
+            if (msg is Map<String, dynamic> && msg['sender_id']?.toString() == _currentUserId) {
+              msg['is_read'] = true;
+              msg['is_delivered'] = true;
+            }
+          }
+        });
       }
     });
 
@@ -285,14 +325,16 @@ class _ChatPageState extends State<ChatPage> {
 
       if (response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
-        final newMessage = responseData['data'];
+        final newMessage = Map<String, dynamic>.from(responseData['data']);
+        newMessage['is_delivered'] = true;
+        newMessage['is_read'] = false;
 
         if (mounted) {
           setState(() {
-            final messageExists = _messages.any(
+            final existingIndex = _messages.indexWhere(
               (msg) => msg['id'] == newMessage['id'],
             );
-            if (!messageExists) {
+            if (existingIndex == -1) {
               _messages.add(newMessage);
             }
           });
@@ -578,14 +620,30 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  /// Helper widget to draw chat bubbles
+  String _formatTime(dynamic rawTimestamp) {
+    if (rawTimestamp == null) return "";
+    try {
+      final dt = DateTime.parse(rawTimestamp.toString()).toLocal();
+      final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final period = dt.hour >= 12 ? 'PM' : 'AM';
+      return "$hour:$minute $period";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  /// Helper widget to draw chat bubbles with Double Ticks & Double Blue Ticks
   Widget _buildMessageBubble(Map<String, dynamic> msg, bool isMe) {
+    final bool isRead = msg['is_read'] == true;
+    final bool isDelivered = msg['is_delivered'] == true;
+    final timeStr = _formatTime(msg['timestamp']);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment: isMe
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMe) ...[
@@ -606,11 +664,11 @@ class _ChatPageState extends State<ChatPage> {
 
           Container(
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.65,
+              maxWidth: MediaQuery.of(context).size.width * 0.72,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: isMe ? const Color(0xFF34A853) : Colors.white,
+              color: isMe ? const Color(0xFF137333) : Colors.white,
               borderRadius: BorderRadius.circular(16).copyWith(
                 bottomRight: isMe
                     ? const Radius.circular(4)
@@ -619,28 +677,64 @@ class _ChatPageState extends State<ChatPage> {
                     ? const Radius.circular(4)
                     : const Radius.circular(16),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
-              crossAxisAlignment: isMe
-                  ? CrossAxisAlignment.end
-                  : CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 if (!isMe)
                   Text(
                     msg['sender_name'] ?? "User",
                     style: const TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF9CA3AF),
-                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                      color: Color(0xFF137333),
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                if (!isMe) const SizedBox(height: 4),
+                if (!isMe) const SizedBox(height: 2),
                 Text(
                   msg['message'] ?? "",
                   style: TextStyle(
-                    fontSize: 14,
-                    color: isMe ? Colors.white : Colors.black87,
+                    fontSize: 14.5,
+                    color: isMe ? Colors.white : const Color(0xFF1E293B),
+                    height: 1.3,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (timeStr.isNotEmpty)
+                      Text(
+                        timeStr,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isMe
+                              ? Colors.white.withOpacity(0.7)
+                              : const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    if (isMe) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        (isRead || isDelivered)
+                            ? Icons.done_all_rounded
+                            : Icons.done_rounded,
+                        size: 15,
+                        color: isRead
+                            ? const Color(0xFF67E8F9) // 🔵 Double Blue Tick (Cyan/Sky Blue)!
+                            : Colors.white.withOpacity(0.7), // ⚪ Double White/Gray Tick
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
