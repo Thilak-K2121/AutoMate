@@ -36,6 +36,7 @@ class _HomePageState extends State<HomePage> {
     _fetchDashboardData();
     _setupGlobalSocket();
     FcmService.syncDeviceToken();
+    FcmService.checkAndHandlePendingNotification();
   }
 
   Future<void> _fetchDashboardData() async {

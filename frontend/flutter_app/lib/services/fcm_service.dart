@@ -19,6 +19,9 @@ class FcmService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
+  // Track pending payload when app is launched from terminated/killed state
+  static Map<String, dynamic>? pendingNotificationPayload;
+
   // Track if user is currently looking at a specific chat screen (prevents duplicate heads-up alerts)
   static String? currentActiveChatRideId;
 
@@ -118,9 +121,7 @@ class FcmService {
       final initialMessage = await _messaging.getInitialMessage();
       if (initialMessage != null) {
         debugPrint("🚀 FCM App Launched from Terminated: ${initialMessage.data}");
-        Future.delayed(const Duration(milliseconds: 1000), () {
-          _handleNotificationTap(initialMessage.data);
-        });
+        pendingNotificationPayload = initialMessage.data;
       }
 
       // 7. Sync Device Token with Backend
@@ -133,6 +134,17 @@ class FcmService {
       });
     } catch (e) {
       debugPrint("❌ FCM Initialization error: $e");
+    }
+  }
+
+  /// Checks and navigates to any pending notification payload once UI is ready
+  static void checkAndHandlePendingNotification() {
+    if (pendingNotificationPayload != null) {
+      final payload = pendingNotificationPayload!;
+      pendingNotificationPayload = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleNotificationTap(payload);
+      });
     }
   }
 
@@ -173,7 +185,11 @@ class FcmService {
     if (rideId == null || rideId.isEmpty) return;
 
     final navContext = ApiService.navigatorKey.currentContext;
-    if (navContext == null) return;
+    if (navContext == null) {
+      // Save payload to execute once Navigator is mounted
+      pendingNotificationPayload = data;
+      return;
+    }
 
     if (type == 'CHAT_MESSAGE') {
       Navigator.of(navContext).push(
