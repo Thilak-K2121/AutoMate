@@ -18,6 +18,7 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
 
   List<dynamic> _messages = [];
   bool _isLoading = true;
@@ -327,12 +328,14 @@ class _ChatPageState extends State<ChatPage> {
     _socket.dispose();
     _messageController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFFF4F7FA),
       body: SafeArea(
         child: Column(
@@ -500,31 +503,36 @@ class _ChatPageState extends State<ChatPage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
-                    child: Container(
-                      constraints: const BoxConstraints(
-                        minHeight: 44,
-                        maxHeight: 120,
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: TextField(
-                        controller: _messageController,
-                        onChanged: _onTextChanged,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.newline,
-                        textCapitalization: TextCapitalization.sentences,
-                        minLines: 1,
-                        maxLines: 5,
-                        style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B)),
-                        decoration: const InputDecoration(
-                          hintText: "Type a message...",
-                          hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 10),
+                    child: GestureDetector(
+                      onTap: () => _focusNode.requestFocus(),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minHeight: 44,
+                          maxHeight: 120,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: TextField(
+                          focusNode: _focusNode,
+                          controller: _messageController,
+                          onChanged: _onTextChanged,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          textCapitalization: TextCapitalization.sentences,
+                          minLines: 1,
+                          maxLines: 5,
+                          style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B)),
+                          decoration: const InputDecoration(
+                            hintText: "Type a message...",
+                            hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 10),
+                          ),
                         ),
                       ),
                     ),
