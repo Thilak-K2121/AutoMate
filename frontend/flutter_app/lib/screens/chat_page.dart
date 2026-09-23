@@ -26,8 +26,9 @@ class _ChatPageState extends State<ChatPage> {
   String _currentUserName = "";
   late IO.Socket _socket;
 
-  // 💬 Real-Time Typing State
-  final Map<String, String> _typingUsers = {};
+  // 💬 Real-Time Typing State (Isolated with ValueNotifier to avoid keyboard rebuild suppression)
+  final ValueNotifier<Map<String, String>> _typingUsersNotifier =
+      ValueNotifier<Map<String, String>>({});
   Timer? _typingTimer;
   bool _isCurrentlyTyping = false;
 
@@ -120,25 +121,32 @@ class _ChatPageState extends State<ChatPage> {
           if (!messageExists) {
             _messages.add(data);
           }
-          // If sender was typing, remove them from typing map
-          if (data['sender_id'] != null) {
-            _typingUsers.remove(data['sender_id'].toString());
-          }
         });
+        // If sender was typing, remove them from typing notifier
+        if (data['sender_id'] != null) {
+          final senderId = data['sender_id'].toString();
+          if (_typingUsersNotifier.value.containsKey(senderId)) {
+            final updated = Map<String, String>.from(_typingUsersNotifier.value);
+            updated.remove(senderId);
+            _typingUsersNotifier.value = updated;
+          }
+        }
         _scrollToBottom();
       }
     });
 
-    // 💬 Listen for Typing Events
+    // 💬 Listen for Typing Events (updates notifier only — does NOT rebuild the entire page or suppress keyboard)
     _socket.on('userTyping', (data) {
       if (data != null && data['userId']?.toString() != _currentUserId) {
         final uid = data['userId']?.toString() ?? '';
         final name = data['userName']?.toString() ?? 'Someone';
-        if (mounted && uid.isNotEmpty) {
-          setState(() {
-            _typingUsers[uid] = name;
-          });
-          _scrollToBottom();
+        if (uid.isNotEmpty) {
+          final current = _typingUsersNotifier.value;
+          if (current[uid] != name) {
+            final updated = Map<String, String>.from(current);
+            updated[uid] = name;
+            _typingUsersNotifier.value = updated;
+          }
         }
       }
     });
@@ -146,10 +154,10 @@ class _ChatPageState extends State<ChatPage> {
     _socket.on('userStoppedTyping', (data) {
       if (data != null) {
         final uid = data['userId']?.toString() ?? '';
-        if (mounted && _typingUsers.containsKey(uid)) {
-          setState(() {
-            _typingUsers.remove(uid);
-          });
+        if (uid.isNotEmpty && _typingUsersNotifier.value.containsKey(uid)) {
+          final updated = Map<String, String>.from(_typingUsersNotifier.value);
+          updated.remove(uid);
+          _typingUsersNotifier.value = updated;
         }
       }
     });
@@ -329,6 +337,7 @@ class _ChatPageState extends State<ChatPage> {
     _messageController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
+    _typingUsersNotifier.dispose();
     super.dispose();
   }
 
@@ -406,7 +415,7 @@ class _ChatPageState extends State<ChatPage> {
                         color: Color(0xFF34A853),
                       ),
                     )
-                  : _messages.isEmpty && _typingUsers.isEmpty
+                  : _messages.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -445,46 +454,52 @@ class _ChatPageState extends State<ChatPage> {
                         ),
             ),
 
-            /// 💬 Animated Typing Indicator Bubble (When peers are typing)
-            if (_typingUsers.isNotEmpty)
-              Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            "${_typingUsers.values.join(', ')} is typing",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF6B7280),
+            /// 💬 Animated Typing Indicator Bubble (Isolated via ValueListenableBuilder)
+            ValueListenableBuilder<Map<String, String>>(
+              valueListenable: _typingUsersNotifier,
+              builder: (context, typingUsers, _) {
+                if (typingUsers.isEmpty) return const SizedBox.shrink();
+
+                return Container(
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          const _TypingDotsAnimation(),
-                        ],
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "${typingUsers.values.join(', ')} is typing",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const _TypingDotsAnimation(),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
+                    ],
+                  ),
+                );
+              },
+            ),
 
             /// Message Input Bar
             Container(
