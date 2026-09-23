@@ -485,7 +485,7 @@ class _ChatPageState extends State<ChatPage> {
 
             /// Message Input Bar
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -497,11 +497,15 @@ class _ChatPageState extends State<ChatPage> {
                 ],
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      height: 44,
+                      constraints: const BoxConstraints(
+                        minHeight: 44,
+                        maxHeight: 120,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(22),
@@ -509,11 +513,19 @@ class _ChatPageState extends State<ChatPage> {
                       child: TextField(
                         controller: _messageController,
                         onChanged: _onTextChanged,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
+                        textCapitalization: TextCapitalization.sentences,
+                        minLines: 1,
+                        maxLines: 5,
+                        style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B)),
                         decoration: const InputDecoration(
                           hintText: "Type a message...",
+                          hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
                           border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 10),
                         ),
-                        onSubmitted: (_) => _sendMessage(),
                       ),
                     ),
                   ),
@@ -528,7 +540,7 @@ class _ChatPageState extends State<ChatPage> {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.send,
+                        Icons.send_rounded,
                         color: Colors.white,
                         size: 20,
                       ),

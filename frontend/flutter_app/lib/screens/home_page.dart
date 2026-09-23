@@ -318,59 +318,6 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
 
-                        /// Notifications
-                        GestureDetector(
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const NotificationsPage(),
-                              ),
-                            );
-
-                            // Refresh unread status after returning from NotificationsPage
-                            await _refreshUnreadStatus();
-                          },
-                          child: Stack(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.notifications_none,
-                                  size: 22,
-                                  color: Color(0xFF374151),
-                                ),
-                              ),
-                              if (_hasUnreadNotifications)
-                                Positioned(
-                                  right: 6,
-                                  top: 6,
-                                  child: Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(width: 12),
-
                         /// Profile
                         GestureDetector(
                           onTap: () {
