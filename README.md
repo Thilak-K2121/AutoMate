@@ -34,7 +34,7 @@ AutoMate simplifies ride-sharing, ensuring secure and efficient transit to commo
 
 ---
 
-## 🚀 Future Implementations (Roadmap)
+## Future Implementations (Roadmap)
 
 The following features are planned for upcoming releases to further enhance the platform:
 
@@ -44,7 +44,7 @@ The following features are planned for upcoming releases to further enhance the 
 
 ---
 
-## 📦 Installation & Local Setup
+##  Installation & Local Setup
 
 ### Prerequisites
 * [Flutter SDK](https://flutter.dev/docs/get-started/install) (v3.0.0+)
