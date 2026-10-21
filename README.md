@@ -112,46 +112,6 @@ sequenceDiagram
     API-->>App: Success or conflict response
 ```
 
-### 3. Database Entity Relationships
-
-The database uses relational tables to represent users, ride groups, and group membership. The following diagram shows a proposed core schema for the platform.
-
-```mermaid
-erDiagram
-    USERS ||--o{ RIDES : creates
-    USERS ||--o{ RIDE_PARTICIPANTS : joins
-    RIDES ||--o{ RIDE_PARTICIPANTS : contains
-
-    USERS {
-        uuid id PK
-        varchar name
-        varchar email UK
-        varchar password_hash
-        varchar phone
-        timestamp created_at
-    }
-
-    RIDES {
-        uuid id PK
-        uuid creator_id FK
-        varchar origin
-        varchar destination
-        timestamp departure_time
-        integer seats_total
-        integer seats_available
-        boolean female_only
-        varchar payment_mode
-        varchar status
-        timestamp created_at
-    }
-
-    RIDE_PARTICIPANTS {
-        uuid id PK
-        uuid ride_id FK
-        uuid user_id FK
-        timestamp joined_at
-    }
-```
 
 **Database integrity considerations:**
 
@@ -161,7 +121,7 @@ erDiagram
 - Validate ride status and seat capacity before accepting membership changes.
 - Adapt the diagram to match the actual tables and columns in your migrations.
 
-### 4. Authentication Flow
+### 3. Authentication Flow
 
 The backend validates credentials during login and protects private endpoints using authenticated requests.
 
@@ -198,7 +158,7 @@ sequenceDiagram
 - Enforce ride-level authorization on protected operations.
 - Use HTTPS for production API traffic.
 
-### 5. Deployment Architecture
+### 4. Deployment Architecture
 
 This diagram represents the current hosting approach using Render, Supabase, and Docker-based local development.
 
