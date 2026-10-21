@@ -18,7 +18,7 @@ AutoMate simplifies ride-sharing, ensuring secure and efficient transit to commo
 
 ---
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 ### Frontend
 * Flutter & Dart
