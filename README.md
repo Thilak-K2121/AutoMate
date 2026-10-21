@@ -6,7 +6,7 @@ AutoMate simplifies ride-sharing, ensuring secure and efficient transit to commo
 
 ---
 
-## ✨ Current Features
+##  Current Features
 
 * **Campus-Exclusive Ride Sharing:** Dedicated network restricted to BMSCE students for finding and coordinating travel mates to common destinations.
 * **Security-First Coordination:** Integrated gender-specific matching and verification features to prioritize rider safety.
@@ -41,7 +41,6 @@ The following features are planned for upcoming releases to further enhance the 
 * **UPI Payment Integration:** Seamless in-app expense splitting and direct UPI payments between travel mates.
 * **AI-Powered Insights:** Smart suggestions for optimal travel routes, times, and dynamic matchmaking using the Gemini API.
 * **Real-time Live Location Tracking:** In-app map integration to track incoming travel mates before pickup.
-* **In-App Messaging:** Secure, real-time chat between matched riders without exposing personal phone numbers.
 
 ---
 
@@ -81,7 +80,7 @@ flutter run
 
 ---
 
-## 📱 Download the App
+##  Download the App
 
 The latest stable Android release (`AutoMate.apk`) is available for download.
 
