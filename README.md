@@ -192,9 +192,6 @@ The following features are planned for upcoming releases to further enhance the 
 - **UPI Payment Integration:** Seamless in-app expense splitting and direct UPI payments between travel mates.
 - **AI-Powered Insights:** Smart suggestions for optimal travel routes, times, and dynamic matchmaking using the Gemini API.
 - **Real-Time Live Location Tracking:** In-app map integration to track incoming travel mates before pickup.
-- **Real-Time Chat:** Live group messaging for coordinating pickup locations and departure times.
-- **Push Notifications:** Alerts for group membership changes, ride updates, and relevant activity.
-- **Ride History and Ratings:** Trip history, user feedback, and community trust features.
 
 ---
 
