@@ -458,6 +458,9 @@ const rideController = {
       // Invalidate cache
       await cache.clearAll();
 
+      // 🔐 Stop delivering this ride's chat to the user who left
+      socketManager.removeUserFromRideChat(userId, rideId);
+
       socketManager.getIO()
         .to(`ride_${rideId}`)
         .emit('rideLeft', {
@@ -551,6 +554,9 @@ const rideController = {
       // Invalidate cache
       await cache.clearAll();
 
+      // 🔐 Removed passenger immediately stops receiving this ride's chat
+      socketManager.removeUserFromRideChat(passengerId, rideId);
+
       socketManager.getIO()
         .to(`ride_${rideId}`)
         .emit('passengerRemoved', { passengerId, rideId });
@@ -607,6 +613,9 @@ const rideController = {
 
       // Invalidate cache
       await cache.clearAll();
+
+      // 🔐 Blocked passenger immediately stops receiving this ride's chat
+      socketManager.removeUserFromRideChat(passengerId, rideId);
 
       socketManager.getIO()
         .to(`ride_${rideId}`)

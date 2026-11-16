@@ -7,6 +7,15 @@ const messageController = {
     try {
       const { rideId } = req.params;
 
+      // 🔐 Only ride members may read the chat history
+      const memberCheck = await db.query(
+        'SELECT 1 FROM ride_participants WHERE ride_id = $1 AND user_id = $2 LIMIT 1',
+        [rideId, req.user.id]
+      );
+      if (memberCheck.rowCount === 0) {
+        return res.status(403).json({ message: 'Join the ride to view its chat.' });
+      }
+
       // Fetch all messages for this ride, joined with user data to get the sender's name
       const result = await db.query(
         `SELECT m.id, m.message, m.timestamp, m.sender_id, u.name as sender_name 
@@ -64,8 +73,8 @@ const messageController = {
         timestamp: newMessage.timestamp
       };
 
-      // 4. Emit the message in real-time to everyone in the ride's socket room
-      socketManager.getIO().to(`ride_${rideId}`).emit('newMessage', fullMessagePayload);
+      // 4. Emit the message in real-time to the ride's MEMBERS-ONLY chat room
+      socketManager.getIO().to(socketManager.chatRoom(rideId)).emit('newMessage', fullMessagePayload);
 
       // 5. Send push notification to all other participants in background/offline
       try {
