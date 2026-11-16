@@ -145,13 +145,7 @@ class _HomePageState extends State<HomePage> {
 
   // 👇 Real-time ride and notification updates
   void _setupGlobalSocket() {
-    _socket = IO.io(
-      ApiService.socketUrl,
-      IO.OptionBuilder()
-          .setTransports(['websocket'])
-          .disableAutoConnect()
-          .build(),
-    );
+    _socket = ApiService.createSocket(); // 🔐 sends JWT in the handshake
 
     _socket.connect();
 

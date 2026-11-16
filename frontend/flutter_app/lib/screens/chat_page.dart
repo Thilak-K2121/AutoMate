@@ -102,14 +102,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _connectSocket() {
-    _socket = IO.io(
-      ApiService.socketUrl,
-      IO.OptionBuilder()
-          .setTransports(['websocket'])
-          .disableAutoConnect()
-          .enableForceNew()
-          .build(),
-    );
+    _socket = ApiService.createSocket(forceNew: true); // 🔐 sends JWT in the handshake
 
     _socket.connect();
 

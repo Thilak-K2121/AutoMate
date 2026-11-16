@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../screens/sign_in_page.dart';
 
 class ApiService {
@@ -17,6 +18,21 @@ class ApiService {
 
   // In-memory token cache to eliminate SharedPreferences disk I/O on every request
   static String? _cachedToken;
+
+  /// 🔐 Creates an authenticated Socket.io connection.
+  /// The JWT is fetched on EVERY connect/reconnect (setAuthFn) and sent in the
+  /// handshake, so the server binds the socket to the real logged-in user.
+  static IO.Socket createSocket({bool forceNew = false}) {
+    var builder = IO.OptionBuilder()
+        .setTransports(['websocket'])
+        .disableAutoConnect()
+        .setAuthFn((callback) async {
+          final token = await getToken();
+          callback({'token': token ?? ''});
+        });
+    if (forceNew) builder = builder.enableForceNew();
+    return IO.io(socketUrl, builder.build());
+  }
 
   /// Decodes JWT payload and checks if token is expired (e.g. after 7 days)
   static bool isTokenExpired(String? token) {
