@@ -42,9 +42,15 @@ const rideController = {
         [creator_id]
       );
 
-      // Atomic delete all previous participant records
+      // Remove the user only from their CURRENT (active/full) rides — the same set whose
+      // seats were just released above. Completed/cancelled ride memberships are kept as
+      // history (they power "Joined" counts, stats and ride history).
       await client.query(
-        `DELETE FROM ride_participants WHERE user_id = $1`,
+        `DELETE FROM ride_participants rp
+         USING rides r
+         WHERE rp.ride_id = r.id
+           AND rp.user_id = $1
+           AND r.status IN ('active', 'full')`,
         [creator_id]
       );
 
@@ -329,7 +335,16 @@ const rideController = {
          )`,
         [userId]
       );
-      await client.query('DELETE FROM ride_participants WHERE user_id = $1', [userId]);
+      // Remove the user only from their CURRENT (active/full) rides; keep completed/cancelled
+      // memberships as history (previously this wiped ALL rows, zeroing the "Joined" count).
+      await client.query(
+        `DELETE FROM ride_participants rp
+         USING rides r
+         WHERE rp.ride_id = r.id
+           AND rp.user_id = $1
+           AND r.status IN ('active', 'full')`,
+        [userId]
+      );
 
       // 6. Verify seat availability
       if (ride.seats_available <= 0) {
@@ -420,13 +435,17 @@ const rideController = {
       await client.query('BEGIN');
 
       const deleteResult = await client.query(
-        'DELETE FROM ride_participants WHERE ride_id = $1 AND user_id = $2 RETURNING *',
+        `DELETE FROM ride_participants
+         WHERE ride_id = $1 AND user_id = $2
+           -- Only from a live ride: completed/cancelled memberships are permanent history
+           AND ride_id IN (SELECT id FROM rides WHERE id = $1 AND status IN ('active', 'full'))
+         RETURNING *`,
         [rideId, userId]
       );
 
       if (deleteResult.rows.length === 0) {
         await client.query('ROLLBACK');
-        return res.status(400).json({ message: 'Not a participant in this ride.' });
+        return res.status(400).json({ message: 'You are not a participant in an active ride with this ID.' });
       }
 
       await client.query(
@@ -513,7 +532,11 @@ const rideController = {
 
       await client.query('BEGIN');
       const deleteRes = await client.query(
-        'DELETE FROM ride_participants WHERE ride_id = $1 AND user_id = $2 RETURNING *',
+        `DELETE FROM ride_participants
+         WHERE ride_id = $1 AND user_id = $2
+           -- Only from a live ride: completed/cancelled memberships are permanent history
+           AND ride_id IN (SELECT id FROM rides WHERE id = $1 AND status IN ('active', 'full'))
+         RETURNING *`,
         [rideId, passengerId]
       );
 
@@ -565,7 +588,11 @@ const rideController = {
       );
 
       const deleteRes = await client.query(
-        'DELETE FROM ride_participants WHERE ride_id = $1 AND user_id = $2 RETURNING *',
+        `DELETE FROM ride_participants
+         WHERE ride_id = $1 AND user_id = $2
+           -- Only from a live ride: completed/cancelled memberships are permanent history
+           AND ride_id IN (SELECT id FROM rides WHERE id = $1 AND status IN ('active', 'full'))
+         RETURNING *`,
         [rideId, passengerId]
       );
 
