@@ -22,7 +22,7 @@
 
 ### 1. Students Travel Alone and Pay High Fares
 
-Multiple students from the same college or hostel often travel to the same destination, such as a metro station, railway station, airport, or tech park. However, each student books a ride individually and pays the full fare.
+Multiple students from the BMSCE campus or hostels often travel to the same destination, such as a metro station, railway station, airport, or tech park. However, each student books a ride individually and pays the full fare.
 
 ### 2. Commercial Ride Pooling May Not Meet Students' Needs
 
@@ -32,18 +32,18 @@ Multiple students from the same college or hostel often travel to the same desti
 
 ### 3. No Dedicated Campus Coordination
 
-Students lack a dedicated platform to discover nearby people traveling in the same direction, coordinate pickup locations, and organize a shared ride.
+BMSCE students lack a dedicated platform to discover trusted, verified college-mates traveling in the same direction, coordinate pickup locations, and organize a shared ride.
 
 ---
 
 ## 💡 What Is AutoMate?
 
-**AutoMate is a peer-to-peer co-traveler discovery and ride-splitting platform for students and daily commuters.**
+**AutoMate is an exclusive peer-to-peer co-traveler discovery and ride-splitting platform built specifically for BMSCE students.** Users are strictly verified through their `@bmsce.ac.in` college email addresses.
 
 Instead of drivers creating pooled rides, users organize their own groups.
 
-1. **Create a group:** A student posts a trip, such as Campus Gate 2 to Central Metro Station at 5:00 PM.
-2. **Discover and join:** Other students heading to the same destination find the group and reserve available places.
+1. **Create a group:** A BMSCE student posts a trip, such as BMSCE Gate 2 to National College Metro Station at 5:00 PM.
+2. **Discover and join:** Other verified BMSCE students heading to the same destination find the group and reserve available places.
 3. **Coordinate in real time:** Members use in-app chat to agree on the meeting point and departure time.
 4. **Meet and book:** The group meets in person and books a single ride through Uber, Ola, Rapido, or a local auto-rickshaw.
 5. **Split the fare:** Members divide the actual fare according to their agreed payment arrangement.
@@ -58,9 +58,9 @@ For example, a ₹150 ride shared equally by three students costs ₹50 per pers
 
 ### 🟢 A. Functional Requirements
 
-1. **User Authentication:** Students register and log in using email, password, and phone number.
-2. **Ride Group Creation:** A host specifies the origin, destination, departure time, seat capacity, payment preference, and optional female-only eligibility.
-3. **Ride Discovery:** Students browse active groups and see current seat availability.
+1. **User Authentication:** Students register and log in exclusively using their `@bmsce.ac.in` college email and password.
+2. **Ride Group Creation:** Any BMSCE student (host) specifies the origin, destination, departure time, seat capacity, payment preference, and optional female-only eligibility.
+3. **Ride Discovery:** BMSCE students browse active groups and see current seat availability.
 4. **Join and Leave:** Students join available groups or leave groups they have joined.
 5. **Host Management:** Hosts cancel or complete groups and remove members. Users can block abusive users according to the platform's rules.
 6. **Real-Time Chat:** Group members exchange messages and receive typing indicators and message-delivery status where supported.
@@ -809,9 +809,9 @@ flowchart TD
 
 # 7. Interview Quick Summary & Pitch
 
-> **"AutoMate is a peer-to-peer co-traveler discovery and ride-splitting platform for students and commuters.**
+> **"AutoMate is an exclusive peer-to-peer co-traveler discovery and ride-splitting platform built specifically for BMSCE students, securely gated by `@bmsce.ac.in` email verification.**
 >
-> Instead of paying individual fares, students traveling in the same direction can create a group, discover co-travelers, coordinate pickup locations through real-time chat, and book one shared ride through an external ride-hailing service or local auto-rickshaw.
+> Instead of paying individual fares, verified college-mates traveling in the same direction can create a group, discover co-travelers, coordinate pickup locations through real-time chat, and book one shared ride through an external ride-hailing service or local auto-rickshaw.
 >
 > The application uses Flutter for the mobile client, Node.js and Express for the backend, PostgreSQL for persistent data, Socket.IO for real-time communication, and Firebase Cloud Messaging for push notifications.
 >
