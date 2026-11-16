@@ -54,9 +54,13 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/images/auto_icon(1) (1).png"
+  # Square 1024x1024 icons built from the auto illustration (no stretching):
+  # app_icon.png = opaque legacy/iOS icon; app_icon_foreground.png = transparent
+  # adaptive foreground with the auto inside Android's 66/108 safe zone.
+  image_path: "assets/images/app_icon.png"
+  remove_alpha_ios: true
   adaptive_icon_background: "#ffffff" # Keeps the background a clean white
-  adaptive_icon_foreground: "assets/images/auto_icon(1) (1).png"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
 
 # Native launch screen. Uses a SQUARE logo (1152x1152, logo centred in the
 # safe circle) because Android 12+ forces the splash icon into a square —
