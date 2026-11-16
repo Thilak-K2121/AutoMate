@@ -2,32 +2,9 @@ const db = require('../config/db');
 const socketManager = require('../sockets/socketManager');
 const notificationService = require('../services/notificationService');
 
-// ⚡ Zero-cost in-memory cache with standard 10-second TTL
-const cache = {
-  data: new Map(),
-  get(key) {
-    const entry = this.data.get(key);
-    if (!entry) return null;
-    if (Date.now() > entry.expiry) {
-      this.data.delete(key);
-      return null;
-    }
-    return entry.value;
-  },
-  set(key, value, ttlMs = 10000) {
-    this.data.set(key, { value, expiry: Date.now() + ttlMs });
-  },
-  clearPattern(prefix) {
-    for (const key of this.data.keys()) {
-      if (key.startsWith(prefix)) {
-        this.data.delete(key);
-      }
-    }
-  },
-  clearAll() {
-    this.data.clear();
-  }
-};
+// ⚡ Shared read cache: Redis when available (consistent across all instances),
+// in-memory fallback otherwise. See src/services/cacheService.js
+const cache = require('../services/cacheService');
 
 const rideController = {
 
@@ -99,7 +76,7 @@ const rideController = {
       await client.query('COMMIT');
 
       // Invalidate read cache
-      cache.clearAll();
+      await cache.clearAll();
 
       socketManager.getIO().emit('newRide');
 
@@ -122,7 +99,7 @@ const rideController = {
     try {
       const currentUserId = req.user.id;
       const cacheKey = `nearby_${currentUserId}`;
-      const cached = cache.get(cacheKey);
+      const cached = await cache.get(cacheKey);
 
       if (cached) {
         return res.status(200).json({ rides: cached });
@@ -161,7 +138,7 @@ const rideController = {
         [currentUserId]
       );
 
-      cache.set(cacheKey, result.rows, 8000); // 8s TTL
+      await cache.set(cacheKey, result.rows, 8000); // 8s TTL
       res.status(200).json({ rides: result.rows });
 
     } catch (error) {
@@ -175,7 +152,7 @@ const rideController = {
     try {
       const userId = req.user.id;
       const cacheKey = `dashboard_${userId}`;
-      const cached = cache.get(cacheKey);
+      const cached = await cache.get(cacheKey);
 
       if (cached) {
         return res.status(200).json(cached);
@@ -250,7 +227,7 @@ const rideController = {
         hasUnreadNotifications: notifRes.rows.some(n => !n.is_read)
       };
 
-      cache.set(cacheKey, payload, 6000); // 6s TTL
+      await cache.set(cacheKey, payload, 6000); // 6s TTL
       res.status(200).json(payload);
 
     } catch (error) {
@@ -415,7 +392,7 @@ const rideController = {
       await client.query('COMMIT');
 
       // Invalidate cache
-      cache.clearAll();
+      await cache.clearAll();
 
       socketManager.getIO().emit('newRide');
       socketManager.getIO().emit('rideUpdated', { rideId });
@@ -460,7 +437,7 @@ const rideController = {
       await client.query('COMMIT');
 
       // Invalidate cache
-      cache.clearAll();
+      await cache.clearAll();
 
       socketManager.getIO()
         .to(`ride_${rideId}`)
@@ -549,7 +526,7 @@ const rideController = {
       await client.query('COMMIT');
 
       // Invalidate cache
-      cache.clearAll();
+      await cache.clearAll();
 
       socketManager.getIO()
         .to(`ride_${rideId}`)
@@ -602,7 +579,7 @@ const rideController = {
       await client.query('COMMIT');
 
       // Invalidate cache
-      cache.clearAll();
+      await cache.clearAll();
 
       socketManager.getIO()
         .to(`ride_${rideId}`)
@@ -643,6 +620,9 @@ const rideController = {
         [rideId, userId]
       );
 
+      // Invalidate shared cache BEFORE broadcasting, so clients that refetch get fresh data
+      await cache.clearAll();
+
       // Broadcast real-time ride ended to room & globally
       socketManager.getIO()
         .to(`ride_${rideId}`)
@@ -672,9 +652,6 @@ const rideController = {
       } catch (err) {
         console.error('Failed to cleanup completed ride data:', err);
       }
-
-      // Invalidate cache
-      cache.clearAll();
 
       res.status(200).json({
         message: 'Ride ended successfully'
@@ -709,6 +686,9 @@ const rideController = {
         [rideId, userId]
       );
 
+      // Invalidate shared cache BEFORE broadcasting, so clients that refetch get fresh data
+      await cache.clearAll();
+
       // Broadcast real-time ride cancelled to room & globally
       socketManager.getIO()
         .to(`ride_${rideId}`)
@@ -739,9 +719,6 @@ const rideController = {
       } catch (err) {
         console.error('Failed to cleanup cancelled ride data:', err);
       }
-
-      // Invalidate cache
-      cache.clearAll();
 
       res.status(200).json({
         message: 'Ride cancelled successfully'

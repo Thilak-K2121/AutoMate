@@ -21,7 +21,21 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Node.js Backend
+  # 2. Redis (shared cache, cron lock, Socket.io cross-instance pub/sub)
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 3. Node.js Backend
+  # Scale-ready: `docker compose up --scale backend=2` works because all shared
+  # state lives in Postgres + Redis (map ports via a load balancer when scaling).
   backend:
     build: ./backend
     ports:
@@ -32,9 +46,12 @@ services:
       - DB_PASSWORD=your_secure_password
       - DB_NAME=autoride
       - JWT_SECRET=your_super_secret_jwt_key
+      - REDIS_URL=redis://redis:6379
     depends_on:
       db:
         condition: service_healthy # NEW: Wait for the db healthcheck to pass
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:

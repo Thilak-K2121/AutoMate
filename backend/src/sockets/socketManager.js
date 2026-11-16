@@ -1,10 +1,24 @@
+const { createAdapter } = require('@socket.io/redis-adapter');
+const redis = require('../config/redis');
+
 let ioInstance;
 
 const socketManager = {
   // Initialize socket listeners
   init: (io) => {
     ioInstance = io;
-    
+
+    // 🌐 Cross-instance fan-out: with the Redis adapter, io.emit() / io.to(room).emit()
+    // are published to Redis and delivered by whichever instance holds the target sockets.
+    // Without Redis, Socket.io keeps its default in-memory adapter (single instance).
+    if (redis.isReady()) {
+      const { pub, sub } = redis.getPubSub();
+      io.adapter(createAdapter(pub, sub, { key: 'automate:socket.io' }));
+      console.log('✅ Socket.io Redis adapter enabled (multi-instance ready)');
+    } else {
+      console.log('ℹ️ Socket.io using in-memory adapter (single-instance mode)');
+    }
+
     io.on('connection', (socket) => {
       console.log(`New client connected: ${socket.id}`);
 
