@@ -251,108 +251,188 @@ class _CreateRidePageState extends State<CreateRidePage> {
   void dispose() {
     _destinationController.dispose();
     _meetingPointController.dispose();
+    _pickupFocus.dispose();
+    _destinationFocus.dispose();
     super.dispose();
   }
 
   // ---------------------------------------------------------------------------
-  // UI helpers
+  // UI state & helpers
   // ---------------------------------------------------------------------------
 
-  Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Text(
-          text,
+  final FocusNode _pickupFocus = FocusNode();
+  final FocusNode _destinationFocus = FocusNode();
+
+  /// Which field a "popular place" chip fills (last focused; pickup by default)
+  bool _targetIsDestination = false;
+
+  static const List<(String, IconData)> _popularPlaces = [
+    ('BMSCE Gate 1', Icons.school_rounded),
+    ('BMSCE Gate 2', Icons.school_rounded),
+    ('National College Metro Station', Icons.directions_subway_rounded),
+    ('BMSCE Campus', Icons.apartment_rounded),
+  ];
+
+  void _applyPlace(String place) {
+    setState(() {
+      if (_targetIsDestination) {
+        _destinationController.text = place;
+        _destinationFocus.unfocus();
+      } else {
+        _meetingPointController.text = place;
+        // Move on to the destination next
+        _targetIsDestination = true;
+        if (_destinationController.text.trim().isEmpty) {
+          _destinationFocus.requestFocus();
+        } else {
+          _pickupFocus.unfocus();
+        }
+      }
+    });
+  }
+
+  void _swapRoute() {
+    setState(() {
+      final from = _meetingPointController.text;
+      _meetingPointController.text = _destinationController.text;
+      _destinationController.text = from;
+    });
+  }
+
+  Widget _routeField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required bool isDestination,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
           style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+            fontSize: 10.5,
+            letterSpacing: 0.9,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textMuted,
           ),
         ),
-      );
-
-  Widget _suggestions(TextEditingController controller, List<String> options) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: options.map((o) {
-          final selected = controller.text.trim() == o;
-          return GestureDetector(
-            onTap: () => setState(() => controller.text = o),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.primarySoft : AppColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                border: Border.all(
-                  color: selected ? AppColors.primary : AppColors.border,
-                ),
-              ),
-              child: Text(
-                o,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: selected ? AppColors.primaryDark : AppColors.textSecondary,
-                ),
-              ),
+        TextField(
+          controller: controller,
+          focusNode: focusNode,
+          onTap: () => setState(() => _targetIsDestination = isDestination),
+          onChanged: (_) => setState(() {}),
+          textInputAction:
+              isDestination ? TextInputAction.done : TextInputAction.next,
+          onSubmitted: (_) {
+            if (!isDestination) {
+              setState(() => _targetIsDestination = true);
+              _destinationFocus.requestFocus();
+            }
+          },
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.ink,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textMuted,
             ),
-          );
-        }).toList(),
-      ),
+            isDense: true,
+            filled: false,
+            contentPadding: const EdgeInsets.only(top: 4, bottom: 2),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _card({required Widget child}) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.xl),
-          boxShadow: AppShadows.card,
-        ),
-        child: child,
-      );
-
   Widget _stepButton(IconData icon, VoidCallback? onTap) => Material(
-        color: onTap == null ? AppColors.fieldFill : AppColors.primarySoft,
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        color: onTap == null ? AppColors.fieldFill : AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          side: BorderSide(
+            color: onTap == null ? AppColors.fieldFill : AppColors.border,
+          ),
+        ),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.md),
           onTap: onTap,
           child: SizedBox(
-            width: 42,
-            height: 42,
+            width: 38,
+            height: 38,
             child: Icon(
               icon,
-              size: 20,
-              color: onTap == null ? AppColors.textMuted : AppColors.primaryDark,
+              size: 19,
+              color: onTap == null ? AppColors.textMuted : AppColors.ink,
             ),
           ),
         ),
       );
 
+  Widget _optionRow({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBg,
+    required String title,
+    required String subtitle,
+    required Widget trailing,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: iconBg,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        trailing,
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final String from = _meetingPointController.text.trim();
+    final String to = _destinationController.text.trim();
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: null,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: IconButton.filledTonal(
-              style: IconButton.styleFrom(
-                backgroundColor: AppColors.surface,
-              ),
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close_rounded, color: AppColors.ink),
-            ),
-          ),
-        ],
-      ),
 
       /// Sticky primary action
       bottomNavigationBar: SafeArea(
@@ -360,11 +440,11 @@ class _CreateRidePageState extends State<CreateRidePage> {
         child: Container(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
           decoration: const BoxDecoration(
-            color: AppColors.background,
+            color: AppColors.surface,
             border: Border(top: BorderSide(color: AppColors.divider)),
           ),
           child: PrimaryButton(
-            label: "Create ride",
+            label: "Post ride",
             icon: Icons.arrow_forward_rounded,
             loading: _isLoading,
             onPressed: _handleCreateRide,
@@ -372,259 +452,442 @@ class _CreateRidePageState extends State<CreateRidePage> {
         ),
       ),
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Where are you going?",
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: AppColors.ink,
-                letterSpacing: -0.7,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              "Post your trip — students heading the same way can join and split the fare.",
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.45,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-
-            const SizedBox(height: 22),
-
-            /// ROUTE
-            _card(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppTextField(
-                    controller: _destinationController,
-                    label: "Destination",
-                    hint: "e.g. National College Metro Station",
-                    icon: Icons.flag_rounded,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  _suggestions(_destinationController, const [
-                    "National College Metro Station",
-                    "BMSCE Campus",
-                  ]),
-                  const SizedBox(height: 18),
-                  AppTextField(
-                    controller: _meetingPointController,
-                    label: "Meeting point",
-                    hint: "e.g. BMSCE Gate 1",
-                    icon: Icons.location_on_rounded,
-                    textInputAction: TextInputAction.done,
-                  ),
-                  _suggestions(_meetingPointController, const [
-                    "BMSCE Gate 1",
-                    "BMSCE Gate 2",
-                    "National College Metro Station",
-                  ]),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            /// SEATS
-            _card(
+            /// Pinned top bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 20, 4),
               child: Row(
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: AppColors.accentSoft,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: const Icon(
-                      Icons.event_seat_rounded,
-                      color: AppColors.accent,
-                      size: 21,
-                    ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded, color: AppColors.ink),
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Total seats",
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.ink,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          "Including you",
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _stepButton(
-                    Icons.remove_rounded,
-                    _seats > 1 ? () => setState(() => _seats--) : null,
-                  ),
-                  SizedBox(
-                    width: 44,
-                    child: Text(
-                      "$_seats",
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.ink,
-                      ),
-                    ),
-                  ),
-                  _stepButton(
-                    Icons.add_rounded,
-                    _seats < 4 ? () => setState(() => _seats++) : null,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            /// PAYMENT
-            _card(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _sectionLabel("Accepted payment"),
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.fieldFill,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Row(
-                      children: _paymentOptions.map((mode) {
-                        final selected = mode == _selectedPayment;
-                        final label = mode == 'Any (Cash/UPI)' ? 'Any' : mode.replaceAll(' Only', '');
-                        final icon = mode.startsWith('UPI')
-                            ? Icons.qr_code_2_rounded
-                            : mode.startsWith('Cash')
-                                ? Icons.payments_rounded
-                                : Icons.all_inclusive_rounded;
-                        return Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _selectedPayment = mode),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOutCubic,
-                              padding: const EdgeInsets.symmetric(vertical: 11),
-                              decoration: BoxDecoration(
-                                color: selected ? AppColors.surface : Colors.transparent,
-                                borderRadius: BorderRadius.circular(AppRadius.sm + 2),
-                                boxShadow: selected ? AppShadows.card : null,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    icon,
-                                    size: 16,
-                                    color: selected ? AppColors.primary : AppColors.textMuted,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    label,
-                                    style: TextStyle(
-                                      fontSize: 13.5,
-                                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                                      color: selected ? AppColors.ink : AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                  const SizedBox(width: 4),
+                  const Text(
+                    "Create ride",
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                      letterSpacing: -0.3,
                     ),
                   ),
                 ],
               ),
             ),
 
-            /// WOMEN ONLY (only offered to female users)
-            if (_isCurrentUserFemale) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-                decoration: BoxDecoration(
-                  color: _isFemaleOnly ? AppColors.femaleSoft : AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.xl),
-                  border: Border.all(
-                    color: _isFemaleOnly
-                        ? AppColors.female.withOpacity(0.4)
-                        : Colors.transparent,
-                  ),
-                  boxShadow: AppShadows.card,
-                ),
-                child: Row(
+            Expanded(
+              child: GestureDetector(
+                onTap: () => FocusScope.of(context).unfocus(),
+                behavior: HitTestBehavior.translucent,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   children: [
+                    /// ROUTE CARD — From → To with timeline + swap
                     Container(
-                      width: 42,
-                      height: 42,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 10, 16),
                       decoration: BoxDecoration(
-                        color: AppColors.femaleSoft,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.xl),
+                        boxShadow: AppShadows.card,
                       ),
-                      child: const Icon(
-                        Icons.female_rounded,
-                        color: AppColors.female,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Text(
-                            "Women-only ride",
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.ink,
+                          // Timeline
+                          Column(
+                            children: [
+                              Container(
+                                width: 14,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.primary,
+                                    width: 3,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                width: 2,
+                                height: 46,
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      AppColors.primary.withOpacity(0.5),
+                                      AppColors.accent.withOpacity(0.5),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.location_on_rounded,
+                                color: AppColors.accent,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 14),
+                          // Fields
+                          Expanded(
+                            child: Column(
+                              children: [
+                                _routeField(
+                                  label: "FROM",
+                                  hint: "Pickup point",
+                                  controller: _meetingPointController,
+                                  focusNode: _pickupFocus,
+                                  isDestination: false,
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 10),
+                                  child: Divider(height: 1),
+                                ),
+                                _routeField(
+                                  label: "TO",
+                                  hint: "Where to?",
+                                  controller: _destinationController,
+                                  focusNode: _destinationFocus,
+                                  isDestination: true,
+                                ),
+                              ],
                             ),
                           ),
-                          SizedBox(height: 2),
-                          Text(
-                            "Only female students can see and join.",
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: AppColors.textSecondary,
+                          // Swap
+                          IconButton(
+                            tooltip: "Swap",
+                            onPressed: _swapRoute,
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.fieldFill,
+                            ),
+                            icon: const Icon(
+                              Icons.swap_vert_rounded,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Switch(
-                      value: _isFemaleOnly,
-                      activeTrackColor: AppColors.female,
-                      onChanged: (value) => setState(() => _isFemaleOnly = value),
+
+                    const SizedBox(height: 14),
+
+                    /// POPULAR PLACES
+                    Row(
+                      children: [
+                        const Text(
+                          "Popular places",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _targetIsDestination
+                              ? "· tap to set destination"
+                              : "· tap to set pickup",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 38,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        clipBehavior: Clip.none, // let chips scroll into the page gutter
+                        itemCount: _popularPlaces.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, i) {
+                          final (place, icon) = _popularPlaces[i];
+                          final bool used = place == from || place == to;
+                          return GestureDetector(
+                            onTap: () => _applyPlace(place),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: used
+                                    ? AppColors.primarySoft
+                                    : AppColors.surface,
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.pill),
+                                border: Border.all(
+                                  color: used
+                                      ? AppColors.primary.withOpacity(0.5)
+                                      : AppColors.border,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    used ? Icons.check_rounded : icon,
+                                    size: 15,
+                                    color: used
+                                        ? AppColors.primary
+                                        : AppColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    place,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: used
+                                          ? AppColors.primaryDark
+                                          : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    /// TRIP DETAILS — seats, payment, women-only in one card
+                    const Text(
+                      "Trip details",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.xl),
+                        boxShadow: AppShadows.card,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _optionRow(
+                            icon: Icons.groups_rounded,
+                            iconColor: AppColors.accent,
+                            iconBg: AppColors.accentSoft,
+                            title: "Group size",
+                            subtitle: "Including you",
+                            trailing: Row(
+                              children: [
+                                _stepButton(
+                                  Icons.remove_rounded,
+                                  _seats > 1
+                                      ? () => setState(() => _seats--)
+                                      : null,
+                                ),
+                                SizedBox(
+                                  width: 40,
+                                  child: Text(
+                                    "$_seats",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.ink,
+                                    ),
+                                  ),
+                                ),
+                                _stepButton(
+                                  Icons.add_rounded,
+                                  _seats < 4
+                                      ? () => setState(() => _seats++)
+                                      : null,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Fare split hint
+                          Padding(
+                            padding: const EdgeInsets.only(left: 52, top: 8),
+                            child: Row(
+                              children: [
+                                ...List.generate(
+                                  4,
+                                  (i) => Padding(
+                                    padding: const EdgeInsets.only(right: 3),
+                                    child: Icon(
+                                      Icons.person_rounded,
+                                      size: 16,
+                                      color: i < _seats
+                                          ? AppColors.primary
+                                          : AppColors.border,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _seats == 1
+                                      ? "Riding solo"
+                                      : "Fare splits $_seats ways",
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryDark,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Divider(height: 1),
+                          ),
+
+                          // Payment
+                          const Text(
+                            "Accepted payment",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: AppColors.fieldFill,
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.md),
+                            ),
+                            child: Row(
+                              children: _paymentOptions.map((mode) {
+                                final selected = mode == _selectedPayment;
+                                final label = mode == 'Any (Cash/UPI)'
+                                    ? 'Any'
+                                    : mode.replaceAll(' Only', '');
+                                final icon = mode.startsWith('UPI')
+                                    ? Icons.qr_code_2_rounded
+                                    : mode.startsWith('Cash')
+                                        ? Icons.payments_rounded
+                                        : Icons.all_inclusive_rounded;
+                                return Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => setState(
+                                      () => _selectedPayment = mode,
+                                    ),
+                                    child: AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 200),
+                                      curve: Curves.easeOutCubic,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: selected
+                                            ? AppColors.surface
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(
+                                          AppRadius.sm + 2,
+                                        ),
+                                        boxShadow:
+                                            selected ? AppShadows.card : null,
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            icon,
+                                            size: 16,
+                                            color: selected
+                                                ? AppColors.primary
+                                                : AppColors.textMuted,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            label,
+                                            style: TextStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: selected
+                                                  ? FontWeight.w800
+                                                  : FontWeight.w600,
+                                              color: selected
+                                                  ? AppColors.ink
+                                                  : AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+
+                          /// Women-only (offered to female users only)
+                          if (_isCurrentUserFemale) ...[
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Divider(height: 1),
+                            ),
+                            _optionRow(
+                              icon: Icons.female_rounded,
+                              iconColor: AppColors.female,
+                              iconBg: AppColors.femaleSoft,
+                              title: "Women-only ride",
+                              subtitle: "Only female students can join",
+                              trailing: Switch(
+                                value: _isFemaleOnly,
+                                activeTrackColor: AppColors.female,
+                                onChanged: (value) =>
+                                    setState(() => _isFemaleOnly = value),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    /// Reassurance note
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.verified_user_rounded,
+                          size: 16,
+                          color: AppColors.textMuted,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Only verified BMSCE students can see and join your ride.",
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ],
         ),
       ),
