@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
-import 'home_page.dart';
-import 'profile_page.dart';
 import 'dart:convert';
+
+import 'package:flutter/material.dart';
+
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_bottom_nav.dart';
 
 class RideHistoryPage extends StatefulWidget {
   const RideHistoryPage({super.key});
@@ -11,10 +13,18 @@ class RideHistoryPage extends StatefulWidget {
   State<RideHistoryPage> createState() => _RideHistoryPageState();
 }
 
-class _RideHistoryPageState extends State<RideHistoryPage> {
+enum _HistoryFilter { all, hosted, joined }
 
+class _RideHistoryPageState extends State<RideHistoryPage> {
   List<dynamic> _historyRides = [];
   bool _isLoading = true;
+  String _userId = '';
+  _HistoryFilter _filter = _HistoryFilter.all;
+
+  static const _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
 
   @override
   void initState() {
@@ -22,190 +32,257 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
     _fetchHistory();
   }
 
-  Future<void> _fetchHistory() async {
+  /// Reads the logged-in user's id from the JWT payload (used for the
+  /// Hosted / Joined filters).
+  Future<void> _loadUserId() async {
     try {
-      final response =
-          await ApiService.getRequest('/rides/history');
+      final token = await ApiService.getToken();
+      if (token == null) return;
+      final parts = token.split('.');
+      if (parts.length != 3) return;
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+      _userId = payload['id']?.toString() ?? '';
+    } catch (_) {}
+  }
+
+  Future<void> _fetchHistory() async {
+    await _loadUserId();
+    try {
+      final response = await ApiService.getRequest('/rides/history');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final List<dynamic> rides = data['history'] ?? [];
 
+        // The API can return a hosted ride once per participant — de-duplicate.
+        final seen = <String>{};
+        final unique = rides.where((r) => seen.add(r['id'].toString())).toList();
+
+        if (!mounted) return;
         setState(() {
-          _historyRides = data['history'];
+          _historyRides = unique;
           _isLoading = false;
         });
       } else {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      print('Error fetching ride history: $e');
-
-      setState(() {
-        _isLoading = false;
-      });
+      debugPrint('Error fetching ride history: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  String _formatDate(String raw) {
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final period = dt.hour >= 12 ? 'PM' : 'AM';
+      return '${dt.day} ${_months[dt.month - 1]} ${dt.year} · $hour:$minute $period';
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  bool _isHosted(dynamic ride) =>
+      _userId.isNotEmpty && ride['creator_id']?.toString() == _userId;
+
+  List<dynamic> get _visibleRides => switch (_filter) {
+        _HistoryFilter.all => _historyRides,
+        _HistoryFilter.hosted => _historyRides.where(_isHosted).toList(),
+        _HistoryFilter.joined =>
+          _historyRides.where((r) => !_isHosted(r)).toList(),
+      };
+
   @override
   Widget build(BuildContext context) {
+    final rides = _visibleRides;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FA),
-      bottomNavigationBar: _bottomNavBar(),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            /// Bottom decorative background
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Image.asset(
-                "assets/images/bg_waves.png",
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox(),
-              ),
-            ),
-
-            /// Page content
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 10),
-
-                  /// Header
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: const Icon(Icons.arrow_back_ios, size: 20),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        "Ride History",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1F2937),
-                        ),
-                      ),
-                      const Spacer(),
-                      const Icon(Icons.search, size: 22, color: Color(0xFF6B7280)),
-                    ],
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      bottomNavigationBar: const AppBottomNav(current: AppTab.none),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ride history',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink,
+                    letterSpacing: -0.8,
                   ),
-
-                  const SizedBox(height: 24),
-
-                  /// Filter chips
-                  Row(
-                    children: [
-                      _filterChip("All", active: true),
-                      const SizedBox(width: 10),
-                      _filterChip("Hosted"),
-                      const SizedBox(width: 10),
-                      _filterChip("Joined"),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  /// Ride list (Static placeholders matching your UI)
-                  Expanded(
-  child: _isLoading
-      ? const Center(
-          child: CircularProgressIndicator(),
-        )
-      : _historyRides.isEmpty
-          ? const Center(
-              child: Text(
-                "No completed rides found",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
                 ),
-              ),
-            )
-          : ListView.builder(
-              itemCount: _historyRides.length,
-              itemBuilder: (context, index) {
-                final ride = _historyRides[index];
-
-                return _rideHistoryCard(
-                  title: ride['destination'] ?? 'Ride',
-                  location: ride['meeting_point'] ?? '',
-                  date: ride['created_at'] ?? '',
-                  price: "Completed",
-                  status: ride['status'] ?? 'completed',
-                );
-              },
+                SizedBox(height: 4),
+                Text(
+                  'Your completed trips',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
-),
-                ],
-              ),
+          ),
+
+          const SizedBox(height: 18),
+
+          /// Filters
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                _filterChip('All', _HistoryFilter.all),
+                const SizedBox(width: 8),
+                _filterChip('Hosted', _HistoryFilter.hosted),
+                const SizedBox(width: 8),
+                _filterChip('Joined', _HistoryFilter.joined),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
+          ),
 
-  Widget _filterChip(String text, {bool active = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: active ? const Color(0xFF34A853) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: active ? const Color(0xFF34A853) : const Color(0xFFE5E7EB),
-        ),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: active ? Colors.white : const Color(0xFF374151),
-          fontWeight: FontWeight.w600,
-          fontSize: 13,
-        ),
-      ),
-    );
-  }
+          const SizedBox(height: 16),
 
-  Widget _rideHistoryCard({
-    required String title,
-    required String location,
-    required String date,
-    required String price,
-    required String status,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.04),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
-          )
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _fetchHistory,
+                    color: AppColors.primary,
+                    child: rides.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [_emptyState()],
+                          )
+                        : ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                            itemCount: rides.length,
+                            itemBuilder: (context, index) =>
+                                _rideHistoryCard(rides[index]),
+                          ),
+                  ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _filterChip(String text, _HistoryFilter value) {
+    final active = _filter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _filter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        decoration: BoxDecoration(
+          color: active ? AppColors.ink : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(
+            color: active ? AppColors.ink : AppColors.border,
+          ),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: active ? Colors.white : AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    final label = switch (_filter) {
+      _HistoryFilter.all => 'No completed rides yet',
+      _HistoryFilter.hosted => 'No completed rides you hosted',
+      _HistoryFilter.joined => 'No completed rides you joined',
+    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: const BoxDecoration(
+              color: AppColors.primarySoft,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.history_rounded,
+              color: AppColors.primary,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Finished rides will show up here.',
+            style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rideHistoryCard(dynamic ride) {
+    final bool hosted = _isHosted(ride);
+    final String title = ride['destination']?.toString() ?? 'Ride';
+    final String location = ride['meeting_point']?.toString() ?? '';
+    final String date = _formatDate(ride['created_at']?.toString() ?? '');
+    final lower = title.toLowerCase();
+    final IconData icon = lower.contains('metro') || lower.contains('station')
+        ? Icons.directions_subway_rounded
+        : (lower.contains('bms') || lower.contains('campus') || lower.contains('college'))
+            ? Icons.school_rounded
+            : Icons.place_rounded;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.card,
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: const Color(0xFFE9F7EF),
-              borderRadius: BorderRadius.circular(14),
+              color: hosted ? AppColors.accentSoft : AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child: const Icon(
-              Icons.directions_car,
-              color: Color(0xFF34A853),
+            child: Icon(
+              icon,
+              color: hosted ? AppColors.accent : AppColors.primary,
             ),
           ),
           const SizedBox(width: 12),
@@ -215,179 +292,68 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     fontSize: 16,
-                    color: Color(0xFF1F2937),
+                    color: AppColors.ink,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
-                  location,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                  'From $location',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  date,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.schedule_rounded,
+                      size: 14,
+                      color: AppColors.textMuted,
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        date,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                price,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  color: Color(0xFF34A853),
-                ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: hosted ? AppColors.accentSoft : AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+            ),
+            child: Text(
+              hosted ? 'Hosted' : 'Joined',
+              style: TextStyle(
+                color: hosted ? AppColors.accent : AppColors.primaryDark,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
               ),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE9F7EF),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  status,
-                  style: const TextStyle(
-                    color: Color(0xFF34A853),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              )
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _bottomNavBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.06),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
+            ),
           ),
         ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            children: [
-              Expanded(
-                child: _navItem(
-                  icon: Icons.home_rounded,
-                  label: "Home",
-                  active: false,
-                  onTap: () => Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HomePage()),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _navItem(
-                  icon: Icons.directions_car_rounded,
-                  label: "Rides",
-                  active: true,
-                  onTap: () {},
-                ),
-              ),
-              SizedBox(
-                width: 64,
-                height: 64,
-                child: Center(
-                  child: Material(
-                    color: const Color(0xFF2F80ED),
-                    shape: const CircleBorder(),
-                    elevation: 3,
-                    shadowColor: const Color(0xFF2F80ED).withOpacity(0.4),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () {},
-                      child: const SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _navItem(
-                  icon: Icons.map_rounded,
-                  label: "Map",
-                  active: false,
-                  onTap: () {},
-                ),
-              ),
-              Expanded(
-                child: _navItem(
-                  icon: Icons.person_outline_rounded,
-                  label: "Profile",
-                  active: false,
-                  onTap: () => Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfilePage()),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem({
-    required IconData icon,
-    required String label,
-    required bool active,
-    required VoidCallback onTap,
-  }) {
-    final color = active ? const Color(0xFF34A853) : const Color(0xFF6B7280);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        splashFactory: InkRipple.splashFactory,
-        highlightColor: const Color(0xFF34A853).withOpacity(0.08),
-        splashColor: const Color(0xFF34A853).withOpacity(0.12),
-        child: SizedBox(
-          height: double.infinity,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 24, color: color),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

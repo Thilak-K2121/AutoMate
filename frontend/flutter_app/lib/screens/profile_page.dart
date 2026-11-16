@@ -2,6 +2,8 @@
 // import 'create_ride_page.dart';
 // import 'map_page.dart';
 // import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_bottom_nav.dart';
 // import '../services/api_service.dart';
 // import 'ride_history_page.dart';
 // import 'package:url_launcher/url_launcher.dart';
@@ -85,7 +87,7 @@
 //           ),
 //           TextButton(
 //             onPressed: () => Navigator.pop(context, true),
-//             child: const Text("Logout", style: TextStyle(color: Colors.red)),
+//             child: const Text("Logout", style: TextStyle(color: AppColors.danger)),
 //           ),
 //         ],
 //       ),
@@ -166,12 +168,12 @@
 //   @override
 //   Widget build(BuildContext context) {
 //     return Scaffold(
-//       backgroundColor: const Color(0xFFF3F6F9),
+//       backgroundColor: AppColors.background,
 //       bottomNavigationBar: _bottomNavBar(),
 //       body: SafeArea(
 //         child: _isLoading
 //             ? const Center(
-//                 child: CircularProgressIndicator(color: Color(0xFF34A853)),
+//                 child: CircularProgressIndicator(color: AppColors.primary),
 //               )
 //             : SingleChildScrollView(
 //                 padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -188,14 +190,14 @@
 //                           style: TextStyle(
 //                             fontSize: 26,
 //                             fontWeight: FontWeight.w700,
-//                             color: Color(0xFF1F2937),
+//                             color: AppColors.ink,
 //                           ),
 //                         ),
 //                         Spacer(),
 //                         // Icon(
 //                         //   Icons.settings_outlined,
 //                         //   size: 22,
-//                         //   color: Color(0xFF6B7280),
+//                         //   color: AppColors.textSecondary,
 //                         // ),
 //                       ],
 //                     ),
@@ -205,11 +207,11 @@
 //                     /// Avatar
 //                     const CircleAvatar(
 //                       radius: 46,
-//                       backgroundColor: Color(0xFFDCE7EE),
+//                       backgroundColor: AppColors.accentSoft,
 //                       child: Icon(
 //                         Icons.person,
 //                         size: 50,
-//                         color: Color(0xFF6B7280),
+//                         color: AppColors.textSecondary,
 //                       ),
 //                     ),
 
@@ -221,7 +223,7 @@
 //                       style: const TextStyle(
 //                         fontSize: 20,
 //                         fontWeight: FontWeight.w700,
-//                         color: Color(0xFF1F2937),
+//                         color: AppColors.ink,
 //                       ),
 //                       textAlign: TextAlign.center,
 //                     ),
@@ -233,7 +235,7 @@
 //                       _userEmail,
 //                       style: const TextStyle(
 //                         fontSize: 14,
-//                         color: Color(0xFF6B7280),
+//                         color: AppColors.textSecondary,
 //                       ),
 //                       textAlign: TextAlign.center,
 //                     ),
@@ -244,7 +246,7 @@
 //                     _isLoadingStats
 //                         ? const Center(
 //                             child: CircularProgressIndicator(
-//                               color: Color(0xFF34A853),
+//                               color: AppColors.primary,
 //                             ),
 //                           )
 //                         : Row(
@@ -314,7 +316,7 @@
 //         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
 //         decoration: BoxDecoration(
 //           color: Colors.white,
-//           borderRadius: BorderRadius.circular(18),
+//           borderRadius: BorderRadius.circular(20),
 //           boxShadow: [
 //             BoxShadow(
 //               color: Colors.black.withOpacity(.04),
@@ -325,21 +327,21 @@
 //         ),
 //         child: Row(
 //           children: [
-//             Icon(icon, color: red ? Colors.red : const Color(0xFF34A853)),
+//             Icon(icon, color: red ? AppColors.danger : AppColors.primary),
 //             const SizedBox(width: 12),
 //             Text(
 //               title,
 //               style: TextStyle(
 //                 fontSize: 15,
 //                 fontWeight: FontWeight.w600,
-//                 color: red ? Colors.red : const Color(0xFF1F2937),
+//                 color: red ? AppColors.danger : AppColors.ink,
 //               ),
 //             ),
 //             const Spacer(),
 //             const Icon(
 //               Icons.arrow_forward_ios,
 //               size: 16,
-//               color: Color(0xFF9CA3AF),
+//               color: AppColors.textMuted,
 //             ),
 //           ],
 //         ),
@@ -404,7 +406,7 @@
 //               width: 56,
 //               height: 56,
 //               decoration: const BoxDecoration(
-//                 color: Color(0xFF2F80ED),
+//                 color: AppColors.accent,
 //                 shape: BoxShape.circle,
 //               ),
 //               child: const Icon(Icons.add, color: Colors.white),
@@ -450,7 +452,7 @@
 //       padding: const EdgeInsets.symmetric(vertical: 18),
 //       decoration: BoxDecoration(
 //         color: Colors.white,
-//         borderRadius: BorderRadius.circular(18),
+//         borderRadius: BorderRadius.circular(20),
 //         boxShadow: [
 //           BoxShadow(
 //             color: Colors.black.withOpacity(.04),
@@ -466,13 +468,13 @@
 //             style: const TextStyle(
 //               fontSize: 20,
 //               fontWeight: FontWeight.w700,
-//               color: Color(0xFF1F2937),
+//               color: AppColors.ink,
 //             ),
 //           ),
 //           const SizedBox(height: 4),
 //           Text(
 //             subtitle,
-//             style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+//             style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
 //           ),
 //         ],
 //       ),
@@ -493,7 +495,7 @@
 
 //   @override
 //   Widget build(BuildContext context) {
-//     final color = active ? const Color(0xFF34A853) : const Color(0xFF6B7280);
+//     final color = active ? AppColors.primary : AppColors.textSecondary;
 
 //     return Column(
 //       mainAxisAlignment: MainAxisAlignment.center,
@@ -511,8 +513,6 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_service.dart';
-import 'create_ride_page.dart';
-import 'map_page.dart';
 import 'my_rides_page.dart';
 import 'sign_in_page.dart';
 
@@ -528,23 +528,23 @@ class _ProfilePageState extends State<ProfilePage> {
   // DESIGN SYSTEM
   // ===========================================================================
 
-  static const Color ink = Color(0xFF0B1220);
-  static const Color inkSoft = Color(0xFF334155);
-  static const Color muted = Color(0xFF64748B);
-  static const Color mutedLight = Color(0xFF94A3B8);
+  static const Color ink = AppColors.ink;
+  static const Color inkSoft = AppColors.textPrimary;
+  static const Color muted = AppColors.textSecondary;
+  static const Color mutedLight = AppColors.textMuted;
 
-  static const Color background = Color(0xFFF5F7FB);
+  static const Color background = AppColors.background;
   static const Color surface = Colors.white;
-  static const Color surfaceSoft = Color(0xFFF8FAFC);
-  static const Color divider = Color(0xFFE7ECF2);
+  static const Color surfaceSoft = AppColors.background;
+  static const Color divider = AppColors.border;
 
-  static const Color green = Color(0xFF22C55E);
-  static const Color greenDark = Color(0xFF16A34A);
-  static const Color blue = Color(0xFF2563EB);
-  static const Color blueLight = Color(0xFF4F7CFF);
-  static const Color pink = Color(0xFFEC4899);
-  static const Color red = Color(0xFFEF4444);
-  static const Color orange = Color(0xFFF59E0B);
+  static const Color green = AppColors.primary;
+  static const Color greenDark = AppColors.primaryDark;
+  static const Color blue = AppColors.accent;
+  static const Color blueLight = AppColors.accent;
+  static const Color pink = AppColors.female;
+  static const Color red = AppColors.danger;
+  static const Color orange = AppColors.warning;
 
   // ===========================================================================
   // STATE
@@ -690,7 +690,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: TextStyle(
                     color: ink,
                     fontSize: 19,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
 
@@ -701,7 +701,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: muted,
-                    fontSize: 11.5,
+                    fontSize: 12,
                     height: 1.5,
                     fontWeight: FontWeight.w500,
                   ),
@@ -832,7 +832,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: TextStyle(
                     color: ink,
                     fontSize: 19,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
 
@@ -843,7 +843,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: muted,
-                    fontSize: 11.5,
+                    fontSize: 12,
                     height: 1.45,
                     fontWeight: FontWeight.w500,
                   ),
@@ -891,8 +891,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               'Thilak K',
                               style: TextStyle(
                                 color: ink,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ],
@@ -924,7 +924,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             behavior: SnackBarBehavior.floating,
                             backgroundColor: ink,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             content: const Text(
                               'No email application installed.',
@@ -954,7 +954,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             'thilakk.cs23@bmsce.ac.in',
                             style: TextStyle(
                               color: blue,
-                              fontSize: 11.5,
+                              fontSize: 12,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -975,7 +975,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   'Made with ❤️ in Bengaluru',
                   style: TextStyle(
                     color: mutedLight,
-                    fontSize: 9.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -993,13 +993,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       side: const BorderSide(color: divider),
                       minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: const Text(
                       'Close',
                       style: TextStyle(
-                        fontSize: 11.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1047,7 +1047,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
       ),
-      bottomNavigationBar: _buildBottomNavigation(),
+      bottomNavigationBar: AppBottomNav(
+        current: AppTab.profile,
+        onRideCreated: () async => _fetchProfileStats(),
+      ),
     );
   }
 
@@ -1065,7 +1068,7 @@ class _ProfilePageState extends State<ProfilePage> {
             height: 76,
             decoration: BoxDecoration(
               color: surface,
-              borderRadius: BorderRadius.circular(23),
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
                   color: ink.withOpacity(.07),
@@ -1121,7 +1124,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: TextStyle(
                   color: ink,
                   fontSize: 26,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: -.8,
                 ),
               ),
@@ -1130,7 +1133,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 'Manage your account and ride activity',
                 style: TextStyle(
                   color: muted,
-                  fontSize: 10.5,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1143,7 +1146,7 @@ class _ProfilePageState extends State<ProfilePage> {
           height: 42,
           decoration: BoxDecoration(
             color: surface,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: divider),
             boxShadow: [
               BoxShadow(
@@ -1171,23 +1174,15 @@ class _ProfilePageState extends State<ProfilePage> {
     final initials = _buildInitials(_userName);
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
+      clipBehavior: Clip.antiAlias, // clip decorations to the rounded card
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF0E1B2A), Color(0xFF143C37)],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: ink.withOpacity(.16),
-            blurRadius: 28,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        gradient: AppColors.heroGradient,
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        boxShadow: AppShadows.primaryGlow,
       ),
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           Positioned(
             top: -35,
@@ -1196,7 +1191,7 @@ class _ProfilePageState extends State<ProfilePage> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: green.withOpacity(.11),
+                color: Colors.white.withOpacity(.10),
                 shape: BoxShape.circle,
               ),
             ),
@@ -1209,7 +1204,7 @@ class _ProfilePageState extends State<ProfilePage> {
               width: 110,
               height: 110,
               decoration: BoxDecoration(
-                color: blue.withOpacity(.07),
+                color: Colors.white.withOpacity(.07),
                 shape: BoxShape.circle,
               ),
             ),
@@ -1221,19 +1216,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF6FE69A), Color(0xFF16A34A)],
-                  ),
+                  color: Colors.white.withOpacity(.18),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: green.withOpacity(.25),
-                      blurRadius: 22,
-                      offset: const Offset(0, 9),
-                    ),
-                  ],
+                  border: Border.all(
+                    color: Colors.white.withOpacity(.55),
+                    width: 2,
+                  ),
                 ),
                 child: Center(
                   child: Text(
@@ -1241,7 +1229,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 21,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -1256,17 +1244,17 @@ class _ProfilePageState extends State<ProfilePage> {
                     const Row(
                       children: [
                         Icon(
-                          Icons.person_pin_circle_rounded,
-                          color: Color(0xFFA7F3D0),
-                          size: 13,
+                          Icons.verified_rounded,
+                          color: Colors.white,
+                          size: 14,
                         ),
                         SizedBox(width: 5),
                         Text(
-                          'AUTOMATE MEMBER',
+                          'VERIFIED BMSCE MEMBER',
                           style: TextStyle(
-                            color: Color(0xFFE8FFF4),
-                            fontSize: 8,
-                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
                             letterSpacing: .65,
                           ),
                         ),
@@ -1281,9 +1269,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -.4,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -.5,
                       ),
                     ),
 
@@ -1294,8 +1282,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(.62),
-                        fontSize: 10,
+                        color: Colors.white.withOpacity(.85),
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1335,7 +1323,7 @@ class _ProfilePageState extends State<ProfilePage> {
         height: 130,
         decoration: BoxDecoration(
           color: surface,
-          borderRadius: BorderRadius.circular(23),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(color: divider),
         ),
         child: const Center(
@@ -1386,7 +1374,7 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: divider),
         boxShadow: [
           BoxShadow(
@@ -1416,7 +1404,7 @@ class _ProfilePageState extends State<ProfilePage> {
             style: const TextStyle(
               color: ink,
               fontSize: 24,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               letterSpacing: -.7,
             ),
           ),
@@ -1427,7 +1415,7 @@ class _ProfilePageState extends State<ProfilePage> {
             label,
             style: const TextStyle(
               color: muted,
-              fontSize: 9.5,
+              fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1449,7 +1437,7 @@ class _ProfilePageState extends State<ProfilePage> {
           style: TextStyle(
             color: ink,
             fontSize: 18,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w800,
             letterSpacing: -.35,
           ),
         ),
@@ -1460,7 +1448,7 @@ class _ProfilePageState extends State<ProfilePage> {
           'Useful shortcuts and support',
           style: TextStyle(
             color: muted,
-            fontSize: 10.5,
+            fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -1553,8 +1541,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         title,
                         style: TextStyle(
                           color: isLogout ? red : ink,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
 
@@ -1566,7 +1554,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: muted,
-                          fontSize: 9.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1579,7 +1567,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   height: 31,
                   decoration: BoxDecoration(
                     color: surfaceSoft,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     Icons.arrow_forward_ios_rounded,
@@ -1600,149 +1588,4 @@ class _ProfilePageState extends State<ProfilePage> {
   // ===========================================================================
   // 6. BOTTOM NAVIGATION (Synchronized with HomePage Design)
   // ===========================================================================
-
-  Widget _buildBottomNavigation() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.06),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            children: [
-              Expanded(
-                child: _navItem(
-                  icon: Icons.home_rounded,
-                  label: "Home",
-                  active: false,
-                  onTap: () {
-                    Navigator.popUntil(context, (route) => route.isFirst);
-                  },
-                ),
-              ),
-              Expanded(
-                child: _navItem(
-                  icon: Icons.history_rounded,
-                  label: "Rides",
-                  active: false,
-                  onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MyRidesPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(
-                width: 64,
-                height: 64,
-                child: Center(
-                  child: Material(
-                    color: const Color(0xFF2F80ED),
-                    shape: const CircleBorder(),
-                    elevation: 3,
-                    shadowColor: const Color(0xFF2F80ED).withOpacity(0.4),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CreateRidePage(),
-                          ),
-                        );
-                        if (result == true) {
-                          _fetchProfileStats();
-                        }
-                      },
-                      child: const SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _navItem(
-                  icon: Icons.map_rounded,
-                  label: "Map",
-                  active: false,
-                  onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MapPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Expanded(
-                child: _navItem(
-                  icon: Icons.person_rounded,
-                  label: "Profile",
-                  active: true,
-                  onTap: () {},
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem({
-    required IconData icon,
-    required String label,
-    required bool active,
-    required VoidCallback onTap,
-  }) {
-    final color = active ? const Color(0xFF34A853) : const Color(0xFF6B7280);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        splashFactory: InkRipple.splashFactory,
-        highlightColor: const Color(0xFF34A853).withOpacity(0.08),
-        splashColor: const Color(0xFF34A853).withOpacity(0.12),
-        child: SizedBox(
-          height: double.infinity,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: active ? FontWeight.bold : FontWeight.w500,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

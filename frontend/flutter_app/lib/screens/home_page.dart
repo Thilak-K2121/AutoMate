@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_bottom_nav.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api_service.dart';
 import '../services/fcm_service.dart';
 import 'create_ride_page.dart';
-import 'my_rides_page.dart';
-import 'map_page.dart';
-import 'notifications_page.dart';
 import 'metro_ride_details_page.dart';
 import 'profile_page.dart';
 import 'sign_in_page.dart';
@@ -110,7 +109,7 @@ class _HomePageState extends State<HomePage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Session expired. Please sign in again."),
-              backgroundColor: Colors.redAccent,
+              backgroundColor: AppColors.danger,
             ),
           );
         }
@@ -264,61 +263,51 @@ class _HomePageState extends State<HomePage> {
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F6F9),
-      bottomNavigationBar: _bottomNavBar(),
+      backgroundColor: AppColors.background,
+      bottomNavigationBar: AppBottomNav(
+        current: AppTab.home,
+        onRideCreated: () async {
+          setState(() => _searchQuery = "");
+          await _fetchDashboardData();
+        },
+      ),
       body: SafeArea(
         child: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF34A853)),
+                child: CircularProgressIndicator(color: AppColors.primary),
               )
             : RefreshIndicator(
                 onRefresh: _fetchDashboardData,
-                color: const Color(0xFF34A853),
+                color: AppColors.primary,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.md),
 
-                    /// HEADER
+                    /// HEADER — wordmark + avatar
                     Row(
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        Text.rich(
+                          const TextSpan(
                             children: [
-                              Text(
-                                "Hi, $_userName 👋",
-                                style: const TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF1F2937),
-                                ),
+                              TextSpan(
+                                text: "Auto",
+                                style: TextStyle(color: AppColors.primary),
                               ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(
-                                    getGreetingIcon(),
-                                    size: 16,
-                                    color: Color(0xFF6B7280),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    getGreeting(),
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Color(0xFF6B7280),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
+                              TextSpan(
+                                text: "Mate",
+                                style: TextStyle(color: AppColors.accent),
                               ),
                             ],
                           ),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.6,
+                          ),
                         ),
-
-                        /// Profile
+                        const Spacer(),
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
@@ -328,160 +317,246 @@ class _HomePageState extends State<HomePage> {
                               ),
                             );
                           },
-                          child: const CircleAvatar(
-                            radius: 20,
-                            backgroundColor: Color(0xFFDCE7EE),
-                            child: Icon(Icons.person, color: Color(0xFF6B7280)),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              gradient: AppColors.primaryGradient,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: AppShadows.card,
+                            ),
+                            child: Text(
+                              _userName.isNotEmpty
+                                  ? _userName[0].toUpperCase()
+                                  : "?",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AppSpacing.xl),
 
-                    /// LOGO
-                    RichText(
-                      text: const TextSpan(
+                    /// GREETING
+                    Row(
+                      children: [
+                        Icon(
+                          getGreetingIcon(),
+                          size: 15,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          getGreeting(),
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Hi, $_userName 👋",
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.ink,
+                        letterSpacing: -0.8,
+                      ),
+                    ),
+
+                    const SizedBox(height: AppSpacing.xl),
+
+                    /// HERO — where are you heading + quick actions
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.heroGradient,
+                        borderRadius: BorderRadius.circular(AppRadius.xxl),
+                        boxShadow: AppShadows.primaryGlow,
+                      ),
+                      child: Stack(
+                        clipBehavior: Clip.none,
                         children: [
-                          TextSpan(
-                            text: "Auto",
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF34A853),
+                          Positioned(
+                            right: -18,
+                            top: -26,
+                            child: Icon(
+                              Icons.electric_rickshaw_rounded,
+                              size: 110,
+                              color: Colors.white.withOpacity(0.09),
                             ),
                           ),
-                          TextSpan(
-                            text: "Mate",
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF2F80ED),
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Where are you heading?",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Share an auto with verified BMSCE students",
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.85),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _quickCard(
+                                      icon: Icons.directions_subway_rounded,
+                                      title: "To Metro",
+                                      subtitle: "Gate 1 → Metro",
+                                      color: AppColors.primary,
+                                      onTap: () async {
+                                        final result = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const CreateRidePage(
+                                              initialDestination:
+                                                  "National College Metro Station",
+                                              initialMeetingPoint:
+                                                  "BMSCE Gate 1",
+                                            ),
+                                          ),
+                                        );
+                                        if (result == true) {
+                                          setState(() => _searchQuery = "");
+                                          await _fetchDashboardData();
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.md),
+                                  Expanded(
+                                    child: _quickCard(
+                                      icon: Icons.school_rounded,
+                                      title: "To College",
+                                      subtitle: "Metro → BMSCE",
+                                      color: AppColors.accent,
+                                      onTap: () async {
+                                        final result = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const CreateRidePage(
+                                              initialDestination:
+                                                  "BMSCE Campus",
+                                              initialMeetingPoint:
+                                                  "National College Metro Station",
+                                            ),
+                                          ),
+                                        );
+                                        if (result == true) {
+                                          setState(() => _searchQuery = "");
+                                          await _fetchDashboardData();
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 18),
-
-                    /// QUICK ACTIONS
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const CreateRidePage(
-                                    initialDestination:
-                                        "National College Metro Station",
-                                    initialMeetingPoint: "BMSCE Gate 1",
-                                  ),
-                                ),
-                              );
-                              if (result == true) {
-                                setState(() {
-                                  _searchQuery = "";
-                                });
-
-                                await _fetchDashboardData();
-                              }
-                            },
-                            child: _quickCard(
-                              icon: Icons.directions_subway,
-                              title: "Go to Metro",
-                              subtitle: "Auto-fill ride",
-                              color: const Color(0xFF34A853),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const CreateRidePage(
-                                    initialDestination: "BMSCE Campus",
-                                    initialMeetingPoint:
-                                        "National College Metro Station",
-                                  ),
-                                ),
-                              );
-                              if (result == true) {
-                                setState(() {
-                                  _searchQuery = "";
-                                });
-
-                                await _fetchDashboardData();
-                              }
-                            },
-                            child: _quickCard(
-                              icon: Icons.school,
-                              title: "Go to College",
-                              subtitle: "Auto-fill ride",
-                              color: const Color(0xFF2F80ED),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 26),
+                    const SizedBox(height: AppSpacing.xl),
 
                     /// SEARCH
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 2,
-                      ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        boxShadow: AppShadows.card,
                       ),
                       child: TextField(
                         onChanged: (value) =>
                             setState(() => _searchQuery = value),
                         decoration: const InputDecoration(
-                          icon: Icon(Icons.search, color: Color(0xFF9CA3AF)),
-                          hintText: "Search destinations or gates...",
-                          border: InputBorder.none,
+                          prefixIcon: Icon(Icons.search_rounded),
+                          hintText: "Search destinations or gates",
+                          fillColor: AppColors.surface,
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.xxl),
 
-                    /// HEADER
-                    const Text(
-                      "Available Rides",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1F2937),
-                      ),
+                    /// SECTION HEADER
+                    Row(
+                      children: [
+                        const Text(
+                          "Available rides",
+                          style: TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.ink,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySoft,
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.pill),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                "${displayRides.length} live",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primaryDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
 
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.md),
 
                     /// RIDES
                     if (displayRides.isEmpty)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Text("No rides available"),
-                        ),
-                      )
+                      _emptyState()
                     else
                       ...displayRides.map<Widget>((ride) {
                         final bool isMetro = ride['destination']
@@ -521,8 +596,8 @@ class _HomePageState extends State<HomePage> {
                           isActiveJoinedRide: isActiveJoinedRide,
                           paymentMode: paymentMode, // 👇 NEW
                           buttonColor: isFemaleOnly
-                              ? Colors.pink
-                              : const Color(0xFF34A853),
+                              ? AppColors.female
+                              : AppColors.primary,
                         );
                       }),
 
@@ -534,65 +609,160 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// Quick action tile inside the hero card (frosted white)
   Widget _quickCard({
     required IconData icon,
     required String title,
     required String subtitle,
     required Color color,
+    required Future<void> Function() onTap,
   }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(.12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Friendly empty state when no rides are live
+  Widget _emptyState() {
     return Container(
-      padding: const EdgeInsets.all(12), // Slightly reduced padding
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.card,
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: const BoxDecoration(
+              color: AppColors.primarySoft,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.electric_rickshaw_rounded,
+              color: AppColors.primary,
+              size: 34,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          const Text(
+            "No rides right now",
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            "Be the first — start a ride and others\nheading your way can join you.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.5,
+              height: 1.45,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          ElevatedButton.icon(
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CreateRidePage()),
+              );
+              if (result == true) {
+                setState(() => _searchQuery = "");
+                await _fetchDashboardData();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(0, 46),
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: const Text("Create a ride"),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color.withOpacity(.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 8),
+    );
+  }
 
-          // NEW: The Expanded widget prevents the 0.5px overflow!
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                  maxLines: 1,
-                  overflow:
-                      TextOverflow.ellipsis, // Adds "..." if it's too long
-                ),
-                if (subtitle.isNotEmpty)
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF6B7280),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
+  Widget _chip({
+    required IconData icon,
+    required String label,
+    Color color = AppColors.textSecondary,
+    Color background = AppColors.fieldFill,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: color,
             ),
           ),
         ],
@@ -611,25 +781,26 @@ class _HomePageState extends State<HomePage> {
     required bool isMyRide,
     required bool isFemaleOnly,
     required bool isActiveJoinedRide,
-    required String paymentMode, // 👇 NEW
+    required String paymentMode,
   }) {
-    Color cardBackground = Colors.white;
-    Color buttonFinalColor = buttonColor;
-    String buttonText = "View";
+    final lower = title.toLowerCase();
+    final IconData destIcon = lower.contains('metro') || lower.contains('station')
+        ? Icons.directions_subway_rounded
+        : (lower.contains('college') || lower.contains('bms') || lower.contains('campus'))
+            ? Icons.school_rounded
+            : Icons.place_rounded;
 
-    if (isMyRide) {
-      cardBackground = isFemaleOnly
-          ? Colors.pink.shade50
-          : const Color(0xFFF0FDF4);
-      buttonFinalColor = isFemaleOnly ? Colors.pink : const Color(0xFF2F80ED);
-      buttonText = "Your Ride";
-    } else if (isActiveJoinedRide) {
-      cardBackground = isFemaleOnly
-          ? Colors.pink.shade50
-          : const Color(0xFFE8F5E9);
-      buttonFinalColor = isFemaleOnly ? Colors.pink : const Color(0xFF34A853);
-      buttonText = "Joined";
-    }
+    // Accent colour of the card: pink for women-only, blue for my ride, green otherwise
+    final Color tone = isFemaleOnly
+        ? AppColors.female
+        : (isMyRide ? AppColors.accent : AppColors.primary);
+    final Color toneSoft = isFemaleOnly
+        ? AppColors.femaleSoft
+        : (isMyRide ? AppColors.accentSoft : AppColors.primarySoft);
+
+    final bool highlighted = isMyRide || isActiveJoinedRide;
+    final String ctaText =
+        isMyRide ? "Manage" : (isActiveJoinedRide ? "Open" : "View");
 
     return GestureDetector(
       onTap: () async {
@@ -655,214 +826,173 @@ class _HomePageState extends State<HomePage> {
         await _fetchDashboardData();
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(18),
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
         decoration: BoxDecoration(
-          color: cardBackground,
-          borderRadius: BorderRadius.circular(22),
-          border: (isMyRide || isActiveJoinedRide)
-              ? Border.all(
-                  color: isFemaleOnly
-                      ? Colors.pink.shade300
-                      : (isMyRide
-                          ? const Color(0xFF2F80ED)
-                          : Colors.green.shade300),
-                  width: 2,
-                )
-              : (isFemaleOnly
-                    ? Border.all(color: Colors.pink.shade100, width: 1.5)
-                    : null),
-          boxShadow: (isMyRide || isActiveJoinedRide)
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          border: highlighted
+              ? Border.all(color: tone.withOpacity(0.55), width: 1.5)
+              : Border.all(color: Colors.transparent, width: 1.5),
+          boxShadow: AppShadows.card,
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 4,
-                  backgroundColor: isFemaleOnly
-                      ? Colors.pink
-                      : (isMyRide
-                          ? const Color(0xFF2F80ED)
-                          : const Color(0xFF34A853)),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+            // Status ribbon for my ride / joined ride
+            if (highlighted)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                decoration: BoxDecoration(
+                  color: toneSoft,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.xl - 2),
                   ),
                 ),
-
-                if (isMyRide)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
+                child: Row(
+                  children: [
+                    Icon(
+                      isMyRide ? Icons.star_rounded : Icons.check_circle_rounded,
+                      size: 14,
+                      color: tone,
                     ),
-                    decoration: BoxDecoration(
-                      color: isFemaleOnly
-                          ? Colors.pink
-                          : const Color(0xFF2F80ED),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.person, color: Colors.white, size: 12),
-                        SizedBox(width: 4),
-                        Text(
-                          "Hosting",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else if (isActiveJoinedRide)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isFemaleOnly
-                          ? Colors.pink
-                          : const Color(0xFF34A853),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.check, color: Colors.white, size: 12),
-                        SizedBox(width: 4),
-                        Text(
-                          "Joined",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-
-            const SizedBox(height: 6),
-
-            Row(
-              children: [
-                const Icon(
-                  Icons.access_time,
-                  size: 14,
-                  color: Color(0xFF34A853),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  time,
-                  style: const TextStyle(
-                    color: Color(0xFF34A853),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 10),
-
-            Row(
-              children: [
-                const Icon(Icons.group, size: 16, color: Color(0xFF6B7280)),
-                const SizedBox(width: 4),
-                Text(people, style: const TextStyle(fontSize: 12)),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.location_pin,
-                  size: 16,
-                  color: Color(0xFF6B7280),
-                ),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    gate,
-                    style: const TextStyle(fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // 👇 Push everything before button to left
-                // 👇 NEW: Payment Mode Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        paymentMode.contains('UPI')
-                            ? Icons.qr_code_scanner
-                            : Icons.payments_outlined,
-                        size: 12,
-                        color: const Color(0xFF4B5563),
+                    const SizedBox(width: 6),
+                    Text(
+                      isMyRide ? "You're hosting this ride" : "You've joined this ride",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: tone,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        paymentMode.replaceAll(" (Cash/UPI)", ""),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF4B5563),
+                    ),
+                  ],
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: toneSoft,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: Icon(destIcon, color: tone, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                                color: AppColors.ink,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.trip_origin_rounded,
+                                  size: 12,
+                                  color: AppColors.textMuted,
+                                ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    "From $gate",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-
-                const SizedBox(width: 8),
-                const Spacer(),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                  const SizedBox(height: 14),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _chip(
+                              icon: Icons.event_seat_rounded,
+                              label: people,
+                              color: AppColors.primaryDark,
+                              background: AppColors.primarySoft,
+                            ),
+                            _chip(
+                              icon: paymentMode.contains('UPI')
+                                  ? Icons.qr_code_2_rounded
+                                  : Icons.payments_rounded,
+                              label: paymentMode.replaceAll(" (Cash/UPI)", ""),
+                            ),
+                            if (isFemaleOnly)
+                              _chip(
+                                icon: Icons.female_rounded,
+                                label: "Women only",
+                                color: AppColors.female,
+                                background: AppColors.femaleSoft,
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: highlighted ? tone : AppColors.ink,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              ctaText,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.white,
+                              size: 15,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  decoration: BoxDecoration(
-                    color: buttonFinalColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    buttonText,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -870,159 +1000,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _bottomNavBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.06),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            children: [
-              Expanded(
-                child: _navItem(
-                  icon: Icons.home_rounded,
-                  label: "Home",
-                  active: true,
-                  onTap: () {},
-                ),
-              ),
-              Expanded(
-                child: _navItem(
-                  icon: Icons.history_rounded,
-                  label: "Rides",
-                  active: false,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const MyRidesPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(
-                width: 64,
-                height: 64,
-                child: Center(
-                  child: Material(
-                    color: const Color(0xFF2F80ED),
-                    shape: const CircleBorder(),
-                    elevation: 3,
-                    shadowColor: const Color(0xFF2F80ED).withOpacity(0.4),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CreateRidePage(),
-                          ),
-                        );
-                        if (result == true) {
-                          setState(() {
-                            _searchQuery = "";
-                          });
-
-                          await _fetchDashboardData();
-                        }
-                      },
-                      child: const SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: _navItem(
-                  icon: Icons.map_rounded,
-                  label: "Map",
-                  active: false,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const MapPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Expanded(
-                child: _navItem(
-                  icon: Icons.person_outline_rounded,
-                  label: "Profile",
-                  active: false,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ProfilePage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem({
-    required IconData icon,
-    required String label,
-    required bool active,
-    required VoidCallback onTap,
-  }) {
-    final color = active ? const Color(0xFF34A853) : const Color(0xFF6B7280);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        splashFactory: InkRipple.splashFactory,
-        highlightColor: const Color(0xFF34A853).withOpacity(0.08),
-        splashColor: const Color(0xFF34A853).withOpacity(0.12),
-        child: SizedBox(
-          height: double.infinity,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 
@@ -1062,21 +1039,21 @@ class _HomePageState extends State<HomePage> {
 //   // COLORS
 //   // ===========================================================================
 
-//   static const Color ink = Color(0xFF0B1220);
-//   static const Color inkSoft = Color(0xFF334155);
-//   static const Color muted = Color(0xFF64748B);
-//   static const Color mutedLight = Color(0xFF94A3B8);
+//   static const Color ink = AppColors.ink;
+//   static const Color inkSoft = AppColors.textPrimary;
+//   static const Color muted = AppColors.textSecondary;
+//   static const Color mutedLight = AppColors.textMuted;
 
-//   static const Color canvas = Color(0xFFF5F7FB);
+//   static const Color canvas = AppColors.background;
 //   static const Color surface = Colors.white;
-//   static const Color surfaceSoft = Color(0xFFF8FAFC);
+//   static const Color surfaceSoft = AppColors.background;
 //   static const Color line = Color(0xFFE8EDF3);
 
-//   static const Color green = Color(0xFF22C55E);
-//   static const Color greenDark = Color(0xFF16A34A);
-//   static const Color blue = Color(0xFF2563EB);
-//   static const Color blueBright = Color(0xFF4F7CFF);
-//   static const Color pink = Color(0xFFEC4899);
+//   static const Color green = AppColors.primary;
+//   static const Color greenDark = AppColors.primaryDark;
+//   static const Color blue = AppColors.accent;
+//   static const Color blueBright = AppColors.accent;
+//   static const Color pink = AppColors.female;
 //   static const Color orange = Color(0xFFF97316);
 
 //   // ===========================================================================
@@ -1691,7 +1668,7 @@ class _HomePageState extends State<HomePage> {
 //                     height: 30,
 //                     decoration: BoxDecoration(
 //                       color: green.withOpacity(.11),
-//                       borderRadius: BorderRadius.circular(10),
+//                       borderRadius: BorderRadius.circular(12),
 //                     ),
 //                     child: Icon(
 //                       _greetingIcon,
@@ -1795,7 +1772,7 @@ class _HomePageState extends State<HomePage> {
 //                 width: 11,
 //                 height: 11,
 //                 decoration: BoxDecoration(
-//                   color: const Color(0xFFFF4D6D),
+//                   color: AppColors.danger,
 //                   shape: BoxShape.circle,
 //                   border: Border.all(color: canvas, width: 2),
 //                 ),
@@ -1902,7 +1879,7 @@ class _HomePageState extends State<HomePage> {
 //                       'Find classmates, split the ride,\nand get where you need to be.',
 //                       style: TextStyle(
 //                         color: Colors.white.withOpacity(.76),
-//                         fontSize: 12.5,
+//                         fontSize: 13,
 //                         height: 1.45,
 //                         fontWeight: FontWeight.w600,
 //                       ),
@@ -1955,7 +1932,7 @@ class _HomePageState extends State<HomePage> {
 //                         gradient: const LinearGradient(
 //                           begin: Alignment.topLeft,
 //                           end: Alignment.bottomRight,
-//                           colors: [Color(0xFF5EE58A), Color(0xFF22C55E)],
+//                           colors: [Color(0xFF5EE58A), AppColors.primary],
 //                         ),
 //                         shape: BoxShape.circle,
 //                         boxShadow: [
@@ -1981,7 +1958,7 @@ class _HomePageState extends State<HomePage> {
 //                         ),
 //                         decoration: BoxDecoration(
 //                           color: Colors.white.withOpacity(.09),
-//                           borderRadius: BorderRadius.circular(10),
+//                           borderRadius: BorderRadius.circular(12),
 //                         ),
 //                         child: const Text(
 //                           'LET\'S GO',
@@ -2121,7 +2098,7 @@ class _HomePageState extends State<HomePage> {
 //                       overflow: TextOverflow.ellipsis,
 //                       style: const TextStyle(
 //                         color: ink,
-//                         fontSize: 12.5,
+//                         fontSize: 13,
 //                         fontWeight: FontWeight.w900,
 //                       ),
 //                     ),
@@ -2132,7 +2109,7 @@ class _HomePageState extends State<HomePage> {
 //                       overflow: TextOverflow.ellipsis,
 //                       style: const TextStyle(
 //                         color: inkSoft,
-//                         fontSize: 11.5,
+//                         fontSize: 12,
 //                         fontWeight: FontWeight.w600,
 //                       ),
 //                     ),
@@ -2152,7 +2129,7 @@ class _HomePageState extends State<HomePage> {
 //       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
 //       decoration: BoxDecoration(
 //         color: surface,
-//         borderRadius: BorderRadius.circular(18),
+//         borderRadius: BorderRadius.circular(20),
 //         border: Border.all(color: line),
 //         boxShadow: [
 //           BoxShadow(
@@ -2205,7 +2182,7 @@ class _HomePageState extends State<HomePage> {
 //                 'Choose a route that fits your plan',
 //                 style: TextStyle(
 //                   color: inkSoft,
-//                   fontSize: 11.5,
+//                   fontSize: 12,
 //                   fontWeight: FontWeight.w600,
 //                 ),
 //               ),
@@ -2273,7 +2250,7 @@ class _HomePageState extends State<HomePage> {
 //             textAlign: TextAlign.center,
 //             style: const TextStyle(
 //               color: muted,
-//               fontSize: 12.5,
+//               fontSize: 13,
 //               height: 1.55,
 //               fontWeight: FontWeight.w600,
 //             ),
@@ -2286,7 +2263,7 @@ class _HomePageState extends State<HomePage> {
 //               label: const Text(
 //                 'Create a ride',
 //                 style: TextStyle(
-//                   fontSize: 11.5,
+//                   fontSize: 12,
 //                   fontWeight: FontWeight.w900,
 //                 ),
 //               ),
@@ -2299,7 +2276,7 @@ class _HomePageState extends State<HomePage> {
 //                   vertical: 13,
 //                 ),
 //                 shape: RoundedRectangleBorder(
-//                   borderRadius: BorderRadius.circular(14),
+//                   borderRadius: BorderRadius.circular(16),
 //                 ),
 //               ),
 //             ),
@@ -2442,7 +2419,7 @@ class _HomePageState extends State<HomePage> {
 //                           ),
 //                           decoration: BoxDecoration(
 //                             color: accent,
-//                             borderRadius: BorderRadius.circular(10),
+//                             borderRadius: BorderRadius.circular(12),
 //                           ),
 //                           child: const Row(
 //                             mainAxisSize: MainAxisSize.min,
@@ -2614,7 +2591,7 @@ class _HomePageState extends State<HomePage> {
 //       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
 //       decoration: BoxDecoration(
 //         color: color.withOpacity(.08),
-//         borderRadius: BorderRadius.circular(10),
+//         borderRadius: BorderRadius.circular(12),
 //       ),
 //       child: Row(
 //         mainAxisSize: MainAxisSize.min,
@@ -2625,7 +2602,7 @@ class _HomePageState extends State<HomePage> {
 //             label,
 //             style: TextStyle(
 //               color: color,
-//               fontSize: 9.2,
+//               fontSize: 10,
 //               fontWeight: FontWeight.w900,
 //             ),
 //           ),
@@ -2653,7 +2630,7 @@ class _HomePageState extends State<HomePage> {
 //                 overflow: TextOverflow.ellipsis,
 //                 style: const TextStyle(
 //                   color: muted,
-//                   fontSize: 9.2,
+//                   fontSize: 10,
 //                   fontWeight: FontWeight.w800,
 //                 ),
 //               ),
@@ -2786,7 +2763,7 @@ class _HomePageState extends State<HomePage> {
 //             label,
 //             style: TextStyle(
 //               color: color,
-//               fontSize: 10.5,
+//               fontSize: 11,
 //               fontWeight: active ? FontWeight.w900 : FontWeight.w700,
 //             ),
 //           ),

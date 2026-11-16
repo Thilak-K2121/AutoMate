@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_bottom_nav.dart';
 
 class MapPage extends StatelessWidget {
   const MapPage({super.key});
@@ -15,12 +17,13 @@ class MapPage extends StatelessWidget {
   static const Color surface = Colors.white;
   static const Color borderColor = Color(0xFFE4E7EC);
 
-  static const Color green = Color(0xFF16A34A);
+  static const Color green = AppColors.primary;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: background,
+      bottomNavigationBar: const AppBottomNav(current: AppTab.map),
       body: SafeArea(
         child: Column(
           children: [
@@ -39,49 +42,29 @@ class MapPage extends StatelessWidget {
   // ===========================================================================
 
   Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        18,
-        10,
-        18,
-        8,
-      ),
-      child: Row(
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: surface,
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(
-                  color: borderColor,
-                ),
-              ),
-              child: const Icon(
-                Icons.arrow_back_rounded,
-                color: ink,
-                size: 20,
-              ),
+          Text(
+            'Live tracking',
+            style: TextStyle(
+              color: AppColors.ink,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.8,
             ),
           ),
-
-          const Expanded(
-            child: Center(
-              child: Text(
-                'Live Tracking',
-                style: TextStyle(
-                  color: ink,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+          SizedBox(height: 4),
+          Text(
+            'Follow your ride in real time',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-
-          const SizedBox(width: 42),
         ],
       ),
     );
@@ -169,7 +152,7 @@ class MapPage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: surface,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: borderColor,
                 ),
@@ -235,7 +218,7 @@ class MapPage extends StatelessWidget {
                     'Feature under development',
                     style: TextStyle(
                       color: muted,
-                      fontSize: 9.5,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -260,7 +243,7 @@ class MapPage extends StatelessWidget {
                     color: borderColor,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: const Text(
@@ -314,7 +297,7 @@ class MapPage extends StatelessWidget {
                 title,
                 style: const TextStyle(
                   color: ink,
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -325,7 +308,7 @@ class MapPage extends StatelessWidget {
                 subtitle,
                 style: const TextStyle(
                   color: muted,
-                  fontSize: 9.5,
+                  fontSize: 10,
                   height: 1.4,
                   fontWeight: FontWeight.w400,
                 ),

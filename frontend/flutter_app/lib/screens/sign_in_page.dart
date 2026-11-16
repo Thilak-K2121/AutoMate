@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_components.dart';
 import '../services/api_service.dart';
 import 'home_page.dart';
 import 'register_page.dart';
@@ -76,298 +78,125 @@ class _SignInPageState extends State<SignInPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEFF4F7),
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Center(
-          // Wrapped in Center to perfectly balance the vertical space
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  /// Illustration
-                  Image.asset(
-                    "assets/images/auto_icon.png",
-                    width:
-                        140, // Slightly scaled down to fit nicely without the wave
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.directions_car,
-                      size: 90,
-                      color: Colors.green,
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  /// Title
-                  const Text(
-                    "Welcome to AutoMate",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF2C3A4B),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  /// Subtitle
-                  const Text(
-                    "Sign in to continue",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF6B7280),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  /// Card container
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-      
-                    child: Column(
-                      children: [
-                        /// Email input
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF2F4F7),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.mail_outline,
-                                size: 20,
-                                color: Color(0xFF9CA3AF),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: TextField(
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: const InputDecoration(
-                                    hintText: "Enter your college email",
-                                    border: InputBorder.none,
-                                    isCollapsed: true,
-                                  ),
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        /// Password input
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF2F4F7),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.lock_outline,
-                                size: 20,
-                                color: Color(0xFF9CA3AF),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: TextField(
-                                  controller: _passwordController,
-                                  obscureText: true,
-                                  decoration: const InputDecoration(
-                                    hintText: "Enter your password",
-                                    border: InputBorder.none,
-                                    isCollapsed: true,
-                                  ),
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        /// Sign In Button
-                        GestureDetector(
-                          onTap: _isLoading ? null : _handleSignIn,
-                          child: Container(
-                            width: double.infinity,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF34C759), Color(0xFF28A745)],
-                              ),
-                            ),
-                            child: Center(
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text(
-                                      "Sign In",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        /// Divider
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                "or",
-                                style: TextStyle(
-                                  color: Color(0xFF9CA3AF),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        /// Google button
-                        Container(
-                          height: 48,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE5E7EB)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                "assets/images/google.png",
-                                width: 20,
-                                height: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                "Sign in with Google",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF374151),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        /// Terms text
-                        const Text.rich(
-                          TextSpan(
-                            text: "By signing in, you agree to our ",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF9CA3AF),
-                            ),
-                            children: [
-                              TextSpan(
-                                text: "Terms of Service",
-                                style: TextStyle(
-                                  color: Color(0xFF28A745),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              TextSpan(text: " & "),
-                              TextSpan(
-                                text: "Privacy Policy",
-                                style: TextStyle(
-                                  color: Color(0xFF28A745),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              TextSpan(text: "."),
-                            ],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        /// Sign Up Button
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterPage(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            "Don't have an account? Sign Up",
-                            style: TextStyle(
-                              color: Color(0xFF28A745),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20), // Bottom padding
-                ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AuthHeader(
+                title: "Welcome back 👋",
+                subtitle:
+                    "Sign in to find co-travellers and split your ride fare.",
               ),
-            ),
+
+              const SizedBox(height: 24),
+
+              /// Illustration card
+              Container(
+                width: double.infinity,
+                height: 150,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primarySoft, AppColors.accentSoft],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                ),
+                child: Image.asset(
+                  "assets/images/auto_icon.png",
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.electric_rickshaw_rounded,
+                    size: 80,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              AppTextField(
+                controller: _emailController,
+                label: "College email",
+                hint: "you@bmsce.ac.in",
+                icon: Icons.alternate_email_rounded,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+              ),
+
+              const SizedBox(height: 18),
+
+              AppTextField(
+                controller: _passwordController,
+                label: "Password",
+                hint: "Enter your password",
+                icon: Icons.lock_outline_rounded,
+                obscure: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _isLoading ? null : _handleSignIn(),
+              ),
+
+              const SizedBox(height: 28),
+
+              PrimaryButton(
+                label: "Sign in",
+                icon: Icons.arrow_forward_rounded,
+                loading: _isLoading,
+                onPressed: _handleSignIn,
+              ),
+
+              const SizedBox(height: 20),
+
+              const Center(child: VerifiedBadge()),
+
+              const SizedBox(height: 28),
+
+              /// Sign up link
+              Center(
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RegisterPage(),
+                      ),
+                    );
+                  },
+                  child: const Text.rich(
+                    TextSpan(
+                      text: "New to AutoMate?  ",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: "Create an account",
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              const Center(
+                child: Text(
+                  "By continuing you agree to our Terms & Privacy Policy.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+              ),
+            ],
           ),
         ),
       ),

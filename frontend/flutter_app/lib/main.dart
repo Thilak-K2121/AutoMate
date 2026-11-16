@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'services/api_service.dart';
 import 'services/fcm_service.dart';
 import 'screens/splash_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,10 +29,8 @@ class AutoMateApp extends StatelessWidget {
       navigatorKey: ApiService.navigatorKey,
       title: 'AutoMate',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        fontFamily: 'Inter', // Or whichever font you prefer
-      ),
+      // 🎨 Central design system — see lib/theme/app_theme.dart
+      theme: AppTheme.light,
       home: const SplashScreenPage(),
     );
   }

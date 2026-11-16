@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import 'sign_in_page.dart';
 import 'home_page.dart';
@@ -82,7 +83,7 @@ class _Background extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF34A853), Color(0xFF2D8A45)],
+          colors: [AppColors.primary, Color(0xFF2D8A45)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),

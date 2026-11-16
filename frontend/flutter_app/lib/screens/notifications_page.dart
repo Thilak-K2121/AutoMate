@@ -1,5 +1,6 @@
 // import 'dart:convert';
 // import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 // import '../services/api_service.dart';
 
 // class NotificationsPage extends StatefulWidget {
@@ -82,7 +83,7 @@
 //   @override
 //   Widget build(BuildContext context) {
 //     return Scaffold(
-//       backgroundColor: const Color(0xFFF3F6F9),
+//       backgroundColor: AppColors.background,
 //       appBar: AppBar(
 //         backgroundColor: Colors.transparent,
 //         elevation: 0,
@@ -90,14 +91,14 @@
 //           onTap: () => Navigator.pop(context),
 //           child: const Icon(
 //             Icons.arrow_back_ios,
-//             color: Color(0xFF1F2937),
+//             color: AppColors.ink,
 //             size: 20,
 //           ),
 //         ),
 //         title: const Text(
 //           "Notifications",
 //           style: TextStyle(
-//             color: Color(0xFF1F2937),
+//             color: AppColors.ink,
 //             fontSize: 22,
 //             fontWeight: FontWeight.w700,
 //           ),
@@ -106,13 +107,13 @@
 //       ),
 //       body: _isLoading
 //           ? const Center(
-//               child: CircularProgressIndicator(color: Color(0xFF34A853)),
+//               child: CircularProgressIndicator(color: AppColors.primary),
 //             )
 //           : _notifications.isEmpty
 //           ? const Center(
 //               child: Text(
 //                 "You're all caught up! 📭",
-//                 style: TextStyle(color: Color(0xFF6B7280), fontSize: 16),
+//                 style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
 //               ),
 //             )
 //           : ListView.builder(
@@ -128,12 +129,12 @@
 //                   decoration: BoxDecoration(
 //                     color: isRead
 //                         ? Colors.white
-//                         : const Color(0xFFF0FDF4), // Light green if unread
+//                         : AppColors.primarySoft, // Light green if unread
 //                     borderRadius: BorderRadius.circular(16),
 //                     border: isRead
 //                         ? null
 //                         : Border.all(
-//                             color: const Color(0xFF34A853).withOpacity(0.3),
+//                             color: AppColors.primary.withOpacity(0.3),
 //                           ),
 //                     boxShadow: [
 //                       BoxShadow(
@@ -151,7 +152,7 @@
 //                         ).withOpacity(0.1),
 //                         child: Icon(
 //                           _getIcon(notif['icon_type']),
-//                           color: const Color(0xFF34A853),
+//                           color: AppColors.primary,
 //                           size: 20,
 //                         ),
 //                       ),
@@ -171,7 +172,7 @@
 //                             Text(
 //                               notif['message'] ?? "",
 //                               style: const TextStyle(
-//                                 color: Color(0xFF6B7280),
+//                                 color: AppColors.textSecondary,
 //                                 fontSize: 13,
 //                               ),
 //                             ),
@@ -181,7 +182,7 @@
 //                       Text(
 //                         _formatTime(notif['created_at']),
 //                         style: const TextStyle(
-//                           color: Color(0xFF9CA3AF),
+//                           color: AppColors.textMuted,
 //                           fontSize: 11,
 //                         ),
 //                       ),
@@ -214,40 +215,40 @@ class _NotificationsPageState
   // ===========================================================================
 
   static const Color ink =
-      Color(0xFF0B1220);
+      AppColors.ink;
 
   static const Color muted =
-      Color(0xFF64748B);
+      AppColors.textSecondary;
 
   static const Color mutedLight =
-      Color(0xFF94A3B8);
+      AppColors.textMuted;
 
   static const Color background =
-      Color(0xFFF5F7FB);
+      AppColors.background;
 
   static const Color surface =
       Colors.white;
 
   static const Color surfaceSoft =
-      Color(0xFFF8FAFC);
+      AppColors.background;
 
   static const Color divider =
-      Color(0xFFE7ECF2);
+      AppColors.border;
 
   static const Color green =
-      Color(0xFF22C55E);
+      AppColors.primary;
 
   static const Color greenDark =
-      Color(0xFF16A34A);
+      AppColors.primaryDark;
 
   static const Color blue =
-      Color(0xFF2563EB);
+      AppColors.accent;
 
   static const Color orange =
-      Color(0xFFF59E0B);
+      AppColors.warning;
 
   static const Color pink =
-      Color(0xFFEC4899);
+      AppColors.female;
 
   // ===========================================================================
   // STATE
@@ -495,7 +496,7 @@ class _NotificationsPageState
                     color: ink,
                     fontSize: 24,
                     fontWeight:
-                        FontWeight.w900,
+                        FontWeight.w800,
                     letterSpacing: -.7,
                   ),
                 ),
@@ -504,7 +505,7 @@ class _NotificationsPageState
                   'Stay updated about your rides',
                   style: TextStyle(
                     color: muted,
-                    fontSize: 10.5,
+                    fontSize: 11,
                     fontWeight:
                         FontWeight.w500,
                   ),
@@ -688,7 +689,7 @@ class _NotificationsPageState
                   color: ink,
                   fontSize: 17,
                   fontWeight:
-                      FontWeight.w900,
+                      FontWeight.w800,
                 ),
               ),
 
@@ -700,7 +701,7 @@ class _NotificationsPageState
                     TextAlign.center,
                 style: TextStyle(
                   color: muted,
-                  fontSize: 11.5,
+                  fontSize: 12,
                   height: 1.5,
                   fontWeight:
                       FontWeight.w500,
@@ -789,7 +790,7 @@ class _NotificationsPageState
       decoration: BoxDecoration(
         color: isRead
             ? surface
-            : const Color(0xFFF0FDF4),
+            : AppColors.primarySoft,
         borderRadius:
             BorderRadius.circular(
           21,
@@ -849,7 +850,7 @@ class _NotificationsPageState
                           style:
                               const TextStyle(
                             color: ink,
-                            fontSize: 12.5,
+                            fontSize: 13,
                             height: 1.2,
                             fontWeight:
                                 FontWeight
@@ -891,7 +892,7 @@ class _NotificationsPageState
                       style:
                           const TextStyle(
                         color: muted,
-                        fontSize: 10.5,
+                        fontSize: 11,
                         height: 1.45,
                         fontWeight:
                             FontWeight

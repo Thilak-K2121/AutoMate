@@ -3,6 +3,8 @@
 // import 'map_page.dart';
 // import 'profile_page.dart';
 // import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_bottom_nav.dart';
 // import '../services/api_service.dart';
 // import 'metro_ride_details_page.dart';
 
@@ -50,7 +52,7 @@
 //     return DefaultTabController(
 //       length: 2, // 2 Tabs: Joined and Hosted
 //       child: Scaffold(
-//         backgroundColor: const Color(0xFFF3F6F9),
+//         backgroundColor: AppColors.background,
 //         bottomNavigationBar: _bottomNavBar(),
 //         appBar: AppBar(
 //           backgroundColor: Colors.white,
@@ -59,23 +61,23 @@
 //             onTap: () => Navigator.pop(context),
 //             child: const Icon(
 //               Icons.arrow_back_ios,
-//               color: Color(0xFF1F2937),
+//               color: AppColors.ink,
 //               size: 20,
 //             ),
 //           ),
 //           title: const Text(
 //             "My Rides",
 //             style: TextStyle(
-//               color: Color(0xFF1F2937),
+//               color: AppColors.ink,
 //               fontSize: 22,
 //               fontWeight: FontWeight.w700,
 //             ),
 //           ),
 //           centerTitle: true,
 //           bottom: const TabBar(
-//             labelColor: Color(0xFF34A853),
-//             unselectedLabelColor: Color(0xFF6B7280),
-//             indicatorColor: Color(0xFF34A853),
+//             labelColor: AppColors.primary,
+//             unselectedLabelColor: AppColors.textSecondary,
+//             indicatorColor: AppColors.primary,
 //             indicatorWeight: 3,
 //             tabs: [
 //               Tab(text: "Joined Rides"),
@@ -85,7 +87,7 @@
 //         ),
 //         body: _isLoading
 //             ? const Center(
-//                 child: CircularProgressIndicator(color: Color(0xFF34A853)),
+//                 child: CircularProgressIndicator(color: AppColors.primary),
 //               )
 //             : TabBarView(
 //                 children: [
@@ -106,7 +108,7 @@
 //   Widget _buildRideList(List<dynamic> rides, String emptyMessage) {
 //     return RefreshIndicator(
 //       onRefresh: _fetchMyRides,
-//       color: const Color(0xFF34A853),
+//       color: AppColors.primary,
 //       child: rides.isEmpty
 //           ? ListView(
 //               physics: const AlwaysScrollableScrollPhysics(),
@@ -116,7 +118,7 @@
 //                   child: Text(
 //                     emptyMessage,
 //                     style: const TextStyle(
-//                       color: Color(0xFF6B7280),
+//                       color: AppColors.textSecondary,
 //                       fontSize: 16,
 //                     ),
 //                   ),
@@ -147,7 +149,7 @@
 //                     padding: const EdgeInsets.all(18),
 //                     decoration: BoxDecoration(
 //                       color: Colors.white,
-//                       borderRadius: BorderRadius.circular(22),
+//                       borderRadius: BorderRadius.circular(20),
 //                       border: isCompleted
 //                           ? Border.all(color: Colors.grey.shade300)
 //                           : null,
@@ -182,7 +184,7 @@
 //                               decoration: BoxDecoration(
 //                                 color: isCompleted
 //                                     ? Colors.grey.shade100
-//                                     : const Color(0xFFE8F5E9),
+//                                     : AppColors.primarySoft,
 //                                 borderRadius: BorderRadius.circular(8),
 //                               ),
 //                               child: Text(
@@ -208,14 +210,14 @@
 //                             const Icon(
 //                               Icons.event,
 //                               size: 16,
-//                               color: Color(0xFF6B7280),
+//                               color: AppColors.textSecondary,
 //                             ),
 //                             const SizedBox(width: 6),
 //                             Text(
 //                               ride['meeting_point'] ?? '',
 //                               style: const TextStyle(
 //                                 fontSize: 13,
-//                                 color: Color(0xFF6B7280),
+//                                 color: AppColors.textSecondary,
 //                               ),
 //                             ),
 //                           ],
@@ -262,7 +264,7 @@
 //               width: 56,
 //               height: 56,
 //               decoration: const BoxDecoration(
-//                 color: Color(0xFF2F80ED),
+//                 color: AppColors.accent,
 //                 shape: BoxShape.circle,
 //               ),
 //               child: const Icon(Icons.add, color: Colors.white),
@@ -296,7 +298,7 @@
 
 //   @override
 //   Widget build(BuildContext context) {
-//     final color = active ? const Color(0xFF34A853) : const Color(0xFF6B7280);
+//     final color = active ? AppColors.primary : AppColors.textSecondary;
 //     return Column(
 //       mainAxisAlignment: MainAxisAlignment.center,
 //       children: [
@@ -356,6 +358,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'create_ride_page.dart';
 import 'metro_ride_details_page.dart';
+import 'ride_history_page.dart';
 
 class MyRidesPage extends StatefulWidget {
   const MyRidesPage({super.key});
@@ -371,21 +374,21 @@ class _MyRidesPageState
   // DESIGN SYSTEM
   // ===========================================================================
 
-  static const Color ink = Color(0xFF0B1220);
-  static const Color muted = Color(0xFF475569);
-  static const Color mutedLight = Color(0xFF64748B);
+  static const Color ink = AppColors.ink;
+  static const Color muted = AppColors.textSecondary;
+  static const Color mutedLight = AppColors.textSecondary;
 
-  static const Color background = Color(0xFFF5F7FB);
+  static const Color background = AppColors.background;
   static const Color surface = Colors.white;
-  static const Color surfaceSoft = Color(0xFFF8FAFC);
-  static const Color divider = Color(0xFFE7ECF2);
+  static const Color surfaceSoft = AppColors.background;
+  static const Color divider = AppColors.border;
 
-  static const Color green = Color(0xFF22C55E);
-  static const Color greenDark = Color(0xFF16A34A);
-  static const Color blue = Color(0xFF2563EB);
-  static const Color pink = Color(0xFFEC4899);
-  static const Color red = Color(0xFFEF4444);
-  static const Color greyStatus = Color(0xFF94A3B8);
+  static const Color green = AppColors.primary;
+  static const Color greenDark = AppColors.primaryDark;
+  static const Color blue = AppColors.accent;
+  static const Color pink = AppColors.female;
+  static const Color red = AppColors.danger;
+  static const Color greyStatus = AppColors.textMuted;
 
   // ===========================================================================
   // STATE
@@ -511,6 +514,10 @@ class _MyRidesPageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: background,
+      bottomNavigationBar: AppBottomNav(
+        current: AppTab.rides,
+        onRideCreated: () async => _fetchMyRides(),
+      ),
       body: SafeArea(
         child: _isLoading
             ? _buildLoadingScreen()
@@ -570,7 +577,7 @@ class _MyRidesPageState
             decoration: BoxDecoration(
               color: surface,
               borderRadius:
-                  BorderRadius.circular(23),
+                  BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
                   color: ink.withOpacity(.07),
@@ -633,7 +640,7 @@ class _MyRidesPageState
               decoration: BoxDecoration(
                 color: surface,
                 borderRadius:
-                    BorderRadius.circular(14),
+                    BorderRadius.circular(16),
                 border: Border.all(
                   color: divider,
                 ),
@@ -683,21 +690,28 @@ class _MyRidesPageState
               ],
             ),
           ),
-          Container(
-            width: 43,
-            height: 43,
-            decoration: BoxDecoration(
-              color: surface,
-              borderRadius:
-                  BorderRadius.circular(14),
-              border: Border.all(
-                color: divider,
-              ),
+          // Opens completed ride history (previously not tappable)
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const RideHistoryPage()),
             ),
-            child: const Icon(
-              Icons.history_rounded,
-              color: greenDark,
-              size: 20,
+            child: Container(
+              width: 43,
+              height: 43,
+              decoration: BoxDecoration(
+                color: surface,
+                borderRadius:
+                    BorderRadius.circular(16),
+                border: Border.all(
+                  color: divider,
+                ),
+              ),
+              child: const Icon(
+                Icons.history_rounded,
+                color: greenDark,
+                size: 20,
+              ),
             ),
           ),
         ],
@@ -748,13 +762,15 @@ class _MyRidesPageState
           unselectedLabelColor:
               mutedLight,
           labelStyle: const TextStyle(
-            fontSize: 13,
+            fontFamily: AppTheme.fontFamily,
+            fontSize: 13.5,
             fontWeight:
                 FontWeight.w800,
           ),
           unselectedLabelStyle:
               const TextStyle(
-            fontSize: 13,
+            fontFamily: AppTheme.fontFamily,
+            fontSize: 13.5,
             fontWeight:
                 FontWeight.w600,
           ),
@@ -926,7 +942,7 @@ class _MyRidesPageState
               color: ink,
               fontSize: 19,
               fontWeight:
-                  FontWeight.w900,
+                  FontWeight.w800,
             ),
           ),
           const SizedBox(height: 7),
@@ -1211,8 +1227,7 @@ class _MyRidesPageState
                                         const TextStyle(
                                       color:
                                           muted,
-                                      fontSize:
-                                          10.5,
+                                      fontSize: 11,
                                       fontWeight:
                                           FontWeight
                                               .w600,
@@ -1392,8 +1407,7 @@ class _MyRidesPageState
                                   TextStyle(
                                 color:
                                     Colors.white,
-                                fontSize:
-                                    9.5,
+                                fontSize: 10,
                                 fontWeight:
                                     FontWeight.w800,
                               ),
@@ -1454,7 +1468,7 @@ class _MyRidesPageState
         color:
             accent.withOpacity(.08),
         borderRadius:
-            BorderRadius.circular(10),
+            BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize:
@@ -1478,9 +1492,9 @@ class _MyRidesPageState
             style:
                 TextStyle(
               color: accent,
-              fontSize: 10.5,
+              fontSize: 11,
               fontWeight:
-                  FontWeight.w900,
+                  FontWeight.w800,
               letterSpacing: .2,
             ),
           ),
@@ -1568,7 +1582,7 @@ class _MyRidesPageState
                 style:
                     const TextStyle(
                   color: mutedLight,
-                  fontSize: 10.5,
+                  fontSize: 11,
                   fontWeight:
                       FontWeight.w700,
                 ),

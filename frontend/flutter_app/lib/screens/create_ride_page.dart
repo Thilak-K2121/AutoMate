@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_components.dart';
 
 import '../services/api_service.dart';
 
@@ -138,7 +140,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                 ),
                 title: const Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                    Icon(Icons.warning_amber_rounded, color: AppColors.warning),
                     SizedBox(width: 8),
                     Text("Cancel Existing Ride?"),
                   ],
@@ -155,7 +157,7 @@ class _CreateRidePageState extends State<CreateRidePage> {
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.danger,
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () => Navigator.pop(ctx, true),
@@ -252,728 +254,379 @@ class _CreateRidePageState extends State<CreateRidePage> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor:
-          const Color(0xFFF3F6F9),
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(
-                    horizontal: 20,
-                  ),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () =>
-                            Navigator.pop(context),
-                        child: const Icon(
-                          Icons.arrow_back_ios,
-                          size: 20,
-                          color:
-                              Color(0xFF1F2937),
-                        ),
-                      ),
+  // ---------------------------------------------------------------------------
+  // UI helpers
+  // ---------------------------------------------------------------------------
 
-                      const Spacer(),
-
-                      GestureDetector(
-                        onTap: () =>
-                            Navigator.pop(context),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration:
-                              BoxDecoration(
-                            color: Colors.white,
-                            borderRadius:
-                                BorderRadius.circular(
-                              10,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black
-                                    .withOpacity(
-                                  .05,
-                                ),
-                                blurRadius: 6,
-                                offset:
-                                    const Offset(
-                                  0,
-                                  3,
-                                ),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            size: 18,
-                            color:
-                                Color(0xFF1F2937),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(
-                  height: 8,
-                ),
-
-                const Center(
-                  child: Text(
-                    "Create Ride",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight:
-                          FontWeight.w700,
-                      color:
-                          Color(0xFF1F2937),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(
-                  height: 20,
-                ),
-
-                Center(
-                  child: Image.asset(
-                    "assets/images/auto_icon.png",
-                    width: 140,
-                    errorBuilder:
-                        (
-                      context,
-                      error,
-                      stackTrace,
-                    ) {
-                      return const Icon(
-                        Icons
-                            .directions_car,
-                        size: 80,
-                        color: Colors.green,
-                      );
-                    },
-                  ),
-                ),
-
-                const SizedBox(
-                  height: 26,
-                ),
-
-                Expanded(
-                  child:
-                      SingleChildScrollView(
-                    padding:
-                        const EdgeInsets.symmetric(
-                      horizontal: 22,
-                    ),
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
-                      children: [
-                        // =====================================================
-                        // DESTINATION
-                        // =====================================================
-
-                        const Text(
-                          "Destination",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight:
-                                FontWeight.w600,
-                            color:
-                                Color(0xFF6B7280),
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 8,
-                        ),
-
-                        _inputTile(
-                          icon:
-                              Icons.flag,
-                          hintText:
-                              "E.g. Metro Station",
-                          controller:
-                              _destinationController,
-                        ),
-
-                        const SizedBox(
-                          height: 18,
-                        ),
-
-                        // =====================================================
-                        // MEETING POINT
-                        // =====================================================
-
-                        const Text(
-                          "Meeting Point",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight:
-                                FontWeight.w600,
-                            color:
-                                Color(0xFF6B7280),
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 8,
-                        ),
-
-                        _inputTile(
-                          icon: Icons
-                              .location_on,
-                          hintText:
-                              "E.g. Main Gate",
-                          controller:
-                              _meetingPointController,
-                        ),
-
-                        const SizedBox(
-                          height: 18,
-                        ),
-
-                        // =====================================================
-                        // SEATS
-                        // =====================================================
-
-                        const Text(
-                          "Total Seats Needed",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight:
-                                FontWeight.w600,
-                            color:
-                                Color(0xFF6B7280),
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 8,
-                        ),
-
-                        Container(
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                          decoration:
-                              BoxDecoration(
-                            color: Colors.white,
-                            borderRadius:
-                                BorderRadius.circular(
-                              18,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black
-                                    .withOpacity(
-                                  .04,
-                                ),
-                                blurRadius: 10,
-                                offset:
-                                    const Offset(
-                                  0,
-                                  6,
-                                ),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons
-                                    .person_add_alt_1,
-                                color:
-                                    Color(
-                                  0xFF34A853,
-                                ),
-                                size: 20,
-                              ),
-
-                              const SizedBox(
-                                width: 10,
-                              ),
-
-                              Text(
-                                "$_seats Seat${_seats > 1 ? 's' : ''}",
-                                style:
-                                    const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight:
-                                      FontWeight.w600,
-                                  color:
-                                      Color(
-                                    0xFF1F2937,
-                                  ),
-                                ),
-                              ),
-
-                              const Spacer(),
-
-                              Container(
-                                decoration:
-                                    BoxDecoration(
-                                  color:
-                                      const Color(
-                                    0xFFF3F4F6,
-                                  ),
-                                  borderRadius:
-                                      BorderRadius
-                                          .circular(
-                                    10,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    IconButton(
-                                      onPressed: () {
-                                        if (_seats >
-                                            1) {
-                                          setState(
-                                            () {
-                                              _seats--;
-                                            },
-                                          );
-                                        }
-                                      },
-                                      icon:
-                                          const Icon(
-                                        Icons
-                                            .remove,
-                                        size: 18,
-                                      ),
-                                    ),
-
-                                    Text(
-                                      "$_seats",
-                                      style:
-                                          const TextStyle(
-                                        fontSize:
-                                            14,
-                                        fontWeight:
-                                            FontWeight
-                                                .w600,
-                                        color:
-                                            Color(
-                                          0xFF1F2937,
-                                        ),
-                                      ),
-                                    ),
-
-                                    IconButton(
-                                      onPressed: () {
-                                        if (_seats <
-                                            4) {
-                                          setState(
-                                            () {
-                                              _seats++;
-                                            },
-                                          );
-                                        }
-                                      },
-                                      icon:
-                                          const Icon(
-                                        Icons.add,
-                                        size: 18,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 20,
-                        ),
-
-                        // =====================================================
-                        // PAYMENT
-                        // =====================================================
-
-                        const Text(
-                          "Accepted Payment",
-                          style: TextStyle(
-                            fontWeight:
-                                FontWeight.w600,
-                            fontSize: 14,
-                            color:
-                                Color(0xFF1F2937),
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 8,
-                        ),
-
-                        Container(
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          decoration:
-                              BoxDecoration(
-                            color: Colors.white,
-                            borderRadius:
-                                BorderRadius.circular(
-                              16,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    Colors.black
-                                        .withOpacity(
-                                  0.04,
-                                ),
-                                blurRadius: 10,
-                                offset:
-                                    const Offset(
-                                  0,
-                                  4,
-                                ),
-                              ),
-                            ],
-                          ),
-                          child:
-                              DropdownButtonHideUnderline(
-                            child:
-                                DropdownButton<
-                                    String>(
-                              isExpanded: true,
-                              value:
-                                  _selectedPayment,
-                              icon:
-                                  const Icon(
-                                Icons
-                                    .keyboard_arrow_down,
-                                color:
-                                    Color(
-                                  0xFF6B7280,
-                                ),
-                              ),
-                              items:
-                                  _paymentOptions
-                                      .map(
-                                (
-                                  String mode,
-                                ) {
-                                  return DropdownMenuItem<
-                                      String>(
-                                    value:
-                                        mode,
-                                    child:
-                                        Row(
-                                      children: [
-                                        Icon(
-                                          mode.contains(
-                                            'UPI',
-                                          )
-                                              ? Icons
-                                                  .qr_code_scanner
-                                              : Icons
-                                                  .money,
-                                          color:
-                                              const Color(
-                                            0xFF34A853,
-                                          ),
-                                          size:
-                                              18,
-                                        ),
-                                        const SizedBox(
-                                          width:
-                                              10,
-                                        ),
-                                        Text(
-                                          mode,
-                                          style:
-                                              const TextStyle(
-                                            fontSize:
-                                                14,
-                                            fontWeight:
-                                                FontWeight.w500,
-                                            color:
-                                                Color(
-                                              0xFF1F2937,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ).toList(),
-                              onChanged:
-                                  (
-                                String?
-                                    newValue,
-                              ) {
-                                if (newValue ==
-                                    null) {
-                                  return;
-                                }
-
-                                setState(
-                                  () {
-                                    _selectedPayment =
-                                        newValue;
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-
-                        // =====================================================
-                        // FEMALE ONLY
-                        // =====================================================
-
-                        if (_isCurrentUserFemale) ...[
-                          const SizedBox(
-                            height: 20,
-                          ),
-
-                          Container(
-                            decoration:
-                                BoxDecoration(
-                              color:
-                                  Colors.pink.shade50,
-                              borderRadius:
-                                  BorderRadius.circular(
-                                16,
-                              ),
-                              border:
-                                  Border.all(
-                                color:
-                                    Colors.pink.shade200,
-                              ),
-                            ),
-                            child:
-                                SwitchListTile(
-                              activeColor:
-                                  Colors.pink,
-                              title:
-                                  const Text(
-                                "Female-Only Ride",
-                                style:
-                                    TextStyle(
-                                  fontSize:
-                                      14,
-                                  fontWeight:
-                                      FontWeight.w600,
-                                  color:
-                                      Colors.pink,
-                                ),
-                              ),
-                              subtitle:
-                                  const Text(
-                                "Restrict this ride to female passengers only.",
-                                style:
-                                    TextStyle(
-                                  fontSize:
-                                      11,
-                                  fontWeight:
-                                      FontWeight.w400,
-                                  color:
-                                      Colors.pinkAccent,
-                                ),
-                              ),
-                              value:
-                                  _isFemaleOnly,
-                              onChanged:
-                                  (
-                                bool value,
-                              ) {
-                                setState(
-                                  () {
-                                    _isFemaleOnly =
-                                        value;
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-
-                        const SizedBox(
-                          height: 30,
-                        ),
-
-                        // =====================================================
-                        // CREATE BUTTON
-                        // =====================================================
-
-                        GestureDetector(
-                          onTap:
-                              _isLoading
-                                  ? null
-                                  : _handleCreateRide,
-                          child:
-                              Container(
-                            height: 56,
-                            decoration:
-                                BoxDecoration(
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                30,
-                              ),
-                              gradient:
-                                  const LinearGradient(
-                                colors: [
-                                  Color(
-                                    0xFF34C759,
-                                  ),
-                                  Color(
-                                    0xFF28A745,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            child:
-                                Center(
-                              child:
-                                  _isLoading
-                                      ? const SizedBox(
-                                          height:
-                                              20,
-                                          width:
-                                              20,
-                                          child:
-                                              CircularProgressIndicator(
-                                            color:
-                                                Colors.white,
-                                            strokeWidth:
-                                                2,
-                                          ),
-                                        )
-                                      : const Text(
-                                          "Create Ride",
-                                          style:
-                                              TextStyle(
-                                            color:
-                                                Colors.white,
-                                            fontSize:
-                                                15,
-                                            fontWeight:
-                                                FontWeight.w600,
-                                          ),
-                                        ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 40,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+  Widget _sectionLabel(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
           ),
-        ],
+        ),
+      );
+
+  Widget _suggestions(TextEditingController controller, List<String> options) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: options.map((o) {
+          final selected = controller.text.trim() == o;
+          return GestureDetector(
+            onTap: () => setState(() => controller.text = o),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.primarySoft : AppColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(
+                  color: selected ? AppColors.primary : AppColors.border,
+                ),
+              ),
+              child: Text(
+                o,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? AppColors.primaryDark : AppColors.textSecondary,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
-  // ===========================================================================
-  // INPUT TILE
-  // ===========================================================================
+  Widget _card({required Widget child}) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          boxShadow: AppShadows.card,
+        ),
+        child: child,
+      );
 
-  Widget _inputTile({
-    required IconData icon,
-    required String hintText,
-    required TextEditingController controller,
-  }) {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 4,
-      ),
-      decoration:
-          BoxDecoration(
-        color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color:
-                Colors.black.withOpacity(
-              .04,
+  Widget _stepButton(IconData icon, VoidCallback? onTap) => Material(
+        color: onTap == null ? AppColors.fieldFill : AppColors.primarySoft,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: onTap,
+          child: SizedBox(
+            width: 42,
+            height: 42,
+            child: Icon(
+              icon,
+              size: 20,
+              color: onTap == null ? AppColors.textMuted : AppColors.primaryDark,
             ),
-            blurRadius: 10,
-            offset:
-                const Offset(0, 6),
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: null,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton.filledTonal(
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.surface,
+              ),
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close_rounded, color: AppColors.ink),
+            ),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color:
-                const Color(
-              0xFF34A853,
-            ),
-            size: 20,
-          ),
 
-          const SizedBox(
-            width: 10,
+      /// Sticky primary action
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          decoration: const BoxDecoration(
+            color: AppColors.background,
+            border: Border(top: BorderSide(color: AppColors.divider)),
           ),
+          child: PrimaryButton(
+            label: "Create ride",
+            icon: Icons.arrow_forward_rounded,
+            loading: _isLoading,
+            onPressed: _handleCreateRide,
+          ),
+        ),
+      ),
 
-          Expanded(
-            child: TextField(
-              controller:
-                  controller,
-              decoration:
-                  InputDecoration(
-                hintText:
-                    hintText,
-                border:
-                    InputBorder.none,
-                hintStyle:
-                    const TextStyle(
-                  fontSize: 11,
-                  fontWeight:
-                      FontWeight.w400,
-                  color:
-                      Colors.black38,
-                ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Where are you going?",
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+                letterSpacing: -0.7,
               ),
-              style:
-                  const TextStyle(
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              "Post your trip — students heading the same way can join and split the fare.",
+              style: TextStyle(
                 fontSize: 14,
-                fontWeight:
-                    FontWeight.w500,
-                color:
-                    Color(
-                  0xFF1F2937,
-                ),
+                height: 1.45,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
               ),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 22),
+
+            /// ROUTE
+            _card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppTextField(
+                    controller: _destinationController,
+                    label: "Destination",
+                    hint: "e.g. National College Metro Station",
+                    icon: Icons.flag_rounded,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  _suggestions(_destinationController, const [
+                    "National College Metro Station",
+                    "BMSCE Campus",
+                  ]),
+                  const SizedBox(height: 18),
+                  AppTextField(
+                    controller: _meetingPointController,
+                    label: "Meeting point",
+                    hint: "e.g. BMSCE Gate 1",
+                    icon: Icons.location_on_rounded,
+                    textInputAction: TextInputAction.done,
+                  ),
+                  _suggestions(_meetingPointController, const [
+                    "BMSCE Gate 1",
+                    "BMSCE Gate 2",
+                    "National College Metro Station",
+                  ]),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            /// SEATS
+            _card(
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentSoft,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: const Icon(
+                      Icons.event_seat_rounded,
+                      color: AppColors.accent,
+                      size: 21,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Total seats",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.ink,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          "Including you",
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _stepButton(
+                    Icons.remove_rounded,
+                    _seats > 1 ? () => setState(() => _seats--) : null,
+                  ),
+                  SizedBox(
+                    width: 44,
+                    child: Text(
+                      "$_seats",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                  ),
+                  _stepButton(
+                    Icons.add_rounded,
+                    _seats < 4 ? () => setState(() => _seats++) : null,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            /// PAYMENT
+            _card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _sectionLabel("Accepted payment"),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.fieldFill,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Row(
+                      children: _paymentOptions.map((mode) {
+                        final selected = mode == _selectedPayment;
+                        final label = mode == 'Any (Cash/UPI)' ? 'Any' : mode.replaceAll(' Only', '');
+                        final icon = mode.startsWith('UPI')
+                            ? Icons.qr_code_2_rounded
+                            : mode.startsWith('Cash')
+                                ? Icons.payments_rounded
+                                : Icons.all_inclusive_rounded;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedPayment = mode),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOutCubic,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              decoration: BoxDecoration(
+                                color: selected ? AppColors.surface : Colors.transparent,
+                                borderRadius: BorderRadius.circular(AppRadius.sm + 2),
+                                boxShadow: selected ? AppShadows.card : null,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    icon,
+                                    size: 16,
+                                    color: selected ? AppColors.primary : AppColors.textMuted,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                                      color: selected ? AppColors.ink : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            /// WOMEN ONLY (only offered to female users)
+            if (_isCurrentUserFemale) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                decoration: BoxDecoration(
+                  color: _isFemaleOnly ? AppColors.femaleSoft : AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  border: Border.all(
+                    color: _isFemaleOnly
+                        ? AppColors.female.withOpacity(0.4)
+                        : Colors.transparent,
+                  ),
+                  boxShadow: AppShadows.card,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColors.femaleSoft,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: const Icon(
+                        Icons.female_rounded,
+                        color: AppColors.female,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Women-only ride",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.ink,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "Only female students can see and join.",
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _isFemaleOnly,
+                      activeTrackColor: AppColors.female,
+                      onChanged: (value) => setState(() => _isFemaleOnly = value),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

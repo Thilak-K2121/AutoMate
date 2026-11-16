@@ -37,6 +37,20 @@ flutter:
     - assets/images/
     - assets/images/google.png
 
+  # Bundled brand font (SIL Open Font License — see assets/fonts/OFL.txt)
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
+          weight: 800
+
 flutter_icons:
   android: true
   ios: true
@@ -44,8 +58,12 @@ flutter_icons:
   adaptive_icon_background: "#ffffff" # Keeps the background a clean white
   adaptive_icon_foreground: "assets/images/auto_icon(1) (1).png"
 
+# Native launch screen. Uses a SQUARE logo (1152x1152, logo centred in the
+# safe circle) because Android 12+ forces the splash icon into a square —
+# the old 1024x1536 image was being squashed. Green matches the Flutter splash.
 flutter_native_splash:
-  color: "#ffffff"
-  image: "assets/images/auto_icon(1).png"
+  color: "#12A150"
+  image: "assets/images/splash_logo.png"
   android_12:
-    image: "assets/images/auto_icon(1).png"
+    image: "assets/images/splash_logo.png"
+    color: "#12A150"

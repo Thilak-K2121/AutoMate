@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_components.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import 'home_page.dart';
@@ -109,47 +111,6 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  Widget _inputField(
-    TextEditingController controller,
-    String hint,
-    IconData icon, {
-    bool obscure = false,
-    TextInputType? type,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F4F7),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: const Color(0xFF9CA3AF)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              obscureText: obscure,
-              keyboardType: type,
-              inputFormatters: inputFormatters,
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: const TextStyle(
-                  color: Color(0xFF9CA3AF),
-                  fontSize: 14,
-                ),
-                border: InputBorder.none,
-                isCollapsed: true,
-              ),
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _nameController.dispose();
@@ -162,258 +123,169 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEFF4F7),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Column(
-                children: [
-                  /// Logo
-                  Image.asset("assets/images/auto_icon.png", width: 120),
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AuthHeader(
+                title: "Create your account",
+                subtitle:
+                    "Join verified BMSCE students sharing rides every day.",
+              ),
 
-                  const SizedBox(height: 20),
+              const SizedBox(height: 28),
 
-                  const Text(
-                    "Create Account",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF2C3A4B),
-                    ),
-                  ),
+              AppTextField(
+                controller: _nameController,
+                label: "Full name",
+                hint: "e.g. Alex Johnson",
+                icon: Icons.person_outline_rounded,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 18),
 
-                  const SizedBox(height: 8),
+              AppTextField(
+                controller: _emailController,
+                label: "College email",
+                hint: "you@bmsce.ac.in",
+                icon: Icons.alternate_email_rounded,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 18),
 
-                  const Text(
-                    "Join AutoMate today",
-                    style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  /// Card
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        _inputField(
-                          _nameController,
-                          "e.g. Alex Johnson",
-                          Icons.person,
-                        ),
-                        const SizedBox(height: 16),
-
-                        _inputField(
-                          _emailController,
-                          "e.g. student@bmsce.ac.in",
-                          Icons.mail_outline,
-                        ),
-                        const SizedBox(height: 16),
-
-                        _inputField(
-                          _phoneController,
-                          "e.g. 9876543210",
-                          Icons.phone_outlined,
-                          type: TextInputType.phone,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(15),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        _inputField(
-                          _passwordController,
-                          "Enter password",
-                          Icons.lock_outline,
-                          obscure: true,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // 👇 NEW: The Gender Dropdown UI
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF2F4F7),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.wc,
-                                size: 20,
-                                color: Color(0xFF9CA3AF),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: _selectedGender,
-                                    isExpanded: true,
-                                    icon: const Icon(
-                                      Icons.keyboard_arrow_down,
-                                      color: Color(0xFF9CA3AF),
-                                    ),
-                                    items: _genders.map((String gender) {
-                                      return DropdownMenuItem<String>(
-                                        value: gender,
-                                        child: Text(
-                                          gender,
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                      );
-                                    }).toList(),
-                                    onChanged: (String? newValue) {
-                                      if (newValue != null) {
-                                        setState(
-                                          () => _selectedGender = newValue,
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        // 👆 END NEW GENDER DROPDOWN
-
-                        /// Register button
-                        GestureDetector(
-                          onTap: _isLoading ? null : _handleRegister,
-                          child: Container(
-                            width: double.infinity,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF34C759), Color(0xFF28A745)],
-                              ),
-                            ),
-                            child: Center(
-                              child: _isLoading
-                                  ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                    )
-                                  : const Text(
-                                      "Register",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        /// Divider
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                "or",
-                                style: TextStyle(color: Color(0xFF9CA3AF)),
-                              ),
-                            ),
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        /// Google button (FIXED)
-                        GestureDetector(
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Google Sign Up coming soon 🚀"),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            height: 48,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.asset(
-                                  "assets/images/google.png",
-                                  width: 22,
-                                  height: 22,
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  "Sign up with Google",
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF374151),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        /// Back to login
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text(
-                            "Already have an account? Sign In",
-                            style: TextStyle(
-                              color: Color(0xFF28A745),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
+              AppTextField(
+                controller: _phoneController,
+                label: "Phone number",
+                hint: "e.g. 9876543210",
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(15),
                 ],
               ),
-            ),
+              const SizedBox(height: 18),
+
+              AppTextField(
+                controller: _passwordController,
+                label: "Password",
+                hint: "At least 6 characters",
+                icon: Icons.lock_outline_rounded,
+                obscure: true,
+                textInputAction: TextInputAction.done,
+              ),
+              const SizedBox(height: 18),
+
+              /// Gender — segmented selector
+              const Text(
+                "Gender",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.fieldFill,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Row(
+                  children: _genders.map((gender) {
+                    final selected = gender == _selectedGender;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedGender = gender),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutCubic,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? AppColors.surface
+                                : Colors.transparent,
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.sm + 2),
+                            boxShadow: selected ? AppShadows.card : null,
+                          ),
+                          child: Text(
+                            gender,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight:
+                                  selected ? FontWeight.w800 : FontWeight.w600,
+                              color: selected
+                                  ? AppColors.ink
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Used only to enable women-only rides.",
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+
+              const SizedBox(height: 28),
+
+              PrimaryButton(
+                label: "Create account",
+                icon: Icons.arrow_forward_rounded,
+                loading: _isLoading,
+                onPressed: _handleRegister,
+              ),
+
+              const SizedBox(height: 20),
+
+              const Center(child: VerifiedBadge()),
+
+              const SizedBox(height: 24),
+
+              Center(
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Text.rich(
+                    TextSpan(
+                      text: "Already have an account?  ",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: "Sign in",
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
