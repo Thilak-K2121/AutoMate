@@ -1,258 +1,178 @@
-#  AutoMate
+# 🛺 AutoMate
 
-**An exclusive student travel coordination platform for the B.M.S. College of Engineering (BMSCE) community.**
+**Peer-to-peer ride sharing for BMSCE students.**
 
-AutoMate simplifies ride-sharing, ensuring secure and efficient transit to common destinations for students. By connecting campus peers, it reduces travel costs, optimizes commutes, and enhances safety through targeted coordination features.
+Students heading the same way — to the metro, college, station or airport — find each other, form a ride group, coordinate the pickup in a live chat, then book **one** auto or cab together and split the fare.
 
----
+**[⬇️ Download the Android app (latest release)](https://github.com/Thilak-K2121/AutoMate/releases/latest)**
 
-##  Current Features
-
-- **Campus-Exclusive Ride Sharing:** Dedicated network restricted to BMSCE students for finding and coordinating travel mates to common destinations.
-- **Security-First Coordination:** Integrated gender-specific matching and verification features to prioritize rider safety.
-- **Cross-Platform Mobile App:** High-performance frontend built with Flutter, delivering a fluid user experience.
-- **Polished UI/UX Elements:** Custom-designed native splash screens and Android Adaptive Icons configured for modern devices.
-- **Robust Backend API:** Powered by Node.js and Express, securely deployed and health-checked on Render.
-- **Scalable Database Architecture:** Integrated with Supabase (PostgreSQL) utilizing optimized SSL connection pooling.
-- **Containerized Environment:** Fully managed local development and deployment workflow using Docker and Docker Compose, optimized with build caching.
+<p align="center">
+  <img src="docs/screenshots/sign_in.png" width="200" alt="Sign in" />
+  <img src="docs/screenshots/home.png" width="200" alt="Home" />
+  <img src="docs/screenshots/create_ride.png" width="200" alt="Create ride" />
+  <img src="docs/screenshots/ride_details.png" width="200" alt="Ride details" />
+</p>
 
 ---
 
-##  Tech Stack
+## Features
 
-### Frontend
-- Flutter and Dart
-- `flutter_native_splash`
-- `flutter_launcher_icons`
+- **Campus-only** — sign-up restricted to `@bmsce.ac.in` emails.
+- **Ride groups** — create, discover, join and leave rides; live seat counts; one active ride per user.
+- **Women-only rides** — visible to and joinable by female students only (enforced on the server).
+- **Live group chat** — typing indicators, delivered / read ticks.
+- **Notifications** — in-app, real-time, and push notifications when the app is closed.
+- **Host controls** — complete, cancel, remove or block a passenger.
+- **Auto-expiry** — abandoned rides are cancelled after 30 minutes and members are notified.
 
-### Backend and Database
-- Node.js
-- Express.js
-- Supabase (PostgreSQL)
+## Tech Stack
 
-### DevOps and Deployment
-- Docker
-- Docker Compose
-- Render
+| Layer | Technology |
+|---|---|
+| Mobile app | Flutter (Dart), Material 3 |
+| Backend | Node.js, Express |
+| Real-time | Socket.io (WebSocket) |
+| Database | PostgreSQL (Supabase) |
+| Cache & coordination | Redis (Render Key Value) |
+| Push notifications | Firebase Cloud Messaging |
+| Hosting | Render (auto-deploy from `main`) |
 
----
-
-##  System Architecture & Design
-
-AutoMate follows a client-server architecture. The Flutter application communicates with the Node.js and Express backend through REST APIs. PostgreSQL stores application data, while the architecture can support WebSockets and Firebase Cloud Messaging as real-time communication features are implemented.
-
-### 1. High-Level Design (HLD)
-
-This diagram illustrates how the mobile application, backend services, and database interact.
+## Architecture
 
 ```mermaid
-flowchart TD
-    subgraph CLIENT["Client Layer"]
-        APP["Flutter Mobile App"]
-        UI["User Interface"]
-        API_CLIENT["REST API Client"]
+flowchart LR
+    APP["📱 Flutter App"] -- "HTTPS REST (JWT)" --> API
+    APP <-- "WebSocket (JWT)" --> API
+    subgraph Backend["Node.js backend (Render, horizontally scalable)"]
+        API["Express API + Socket.io"]
+        CRON["Cron: expire stale rides"]
     end
-
-    subgraph BACKEND["Backend Layer - Render"]
-        API["Node.js and Express API"]
-        AUTH["Authentication and Authorization"]
-        RIDE["Ride Group Service"]
-        PROFILE["User Profile Service"]
-    end
-
-    subgraph DATABASE["Data Layer - Supabase"]
-        DB[("PostgreSQL Database")]
-    end
-
-    APP --> UI
-    UI --> API_CLIENT
-    API_CLIENT -->|"HTTPS Requests"| API
-    API --> AUTH
-    AUTH --> RIDE
-    AUTH --> PROFILE
-    RIDE --> DB
-    PROFILE --> DB
-
-    DB -->|"Query Results"| API
-    API -->|"JSON Responses"| API_CLIENT
+    API --> PG[("PostgreSQL")]
+    API <--> REDIS[("Redis<br/>cache · pub/sub · locks")]
+    CRON --> PG
+    API --> FCM["Firebase Cloud Messaging"]
+    FCM -. push .-> APP
 ```
 
-### 2. Ride Group Creation and Joining
+**Engineering highlights**
 
-This flow illustrates how students create ride groups and join available groups. The backend must validate seat availability before accepting a new member.
+- **No overbooking** — joining a ride runs in a transaction that locks the ride row (`SELECT … FOR UPDATE`), backed by a `UNIQUE(ride_id, user_id)` constraint.
+- **Scale-ready** — the Socket.io Redis adapter delivers events across server instances, the read cache lives in Redis, and a Redis lock ensures the cron job runs once cluster-wide. No sticky sessions needed (WebSocket-only transport).
+- **Secure real-time** — JWT verified on the socket handshake; chat is delivered only to ride members; user identity is taken from the token, never the client payload.
+- **Fast mobile dashboard** — one Backend-for-Frontend endpoint returns everything the home screen needs; responses are gzipped and briefly cached.
+- **Graceful degradation** — if Redis is unavailable the backend keeps running in single-instance mode.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Host as Host Student
-    actor Student as Joining Student
-    participant App as Flutter App
-    participant API as Express Backend
-    participant DB as Supabase PostgreSQL
+## Data Model
 
-    Host->>App: Create ride group
-    App->>API: POST /api/rides/create
-    API->>DB: Insert ride group
-    DB-->>API: Ride created
-    API-->>App: 201 Created
+| Table | Purpose |
+|---|---|
+| `users` | Student accounts (bcrypt passwords, gender for women-only rides) |
+| `rides` | Ride groups — route, seats, status (`active` / `full` / `completed` / `cancelled`), payment mode |
+| `ride_participants` | Who is in which ride (host included); kept as history |
+| `messages` | Ride chat |
+| `notifications` | In-app notifications |
+| `blocked_passengers` | Users a host blocked from a ride |
+| `user_devices` | Firebase push tokens |
 
-    Student->>App: Discover available groups
-    App->>API: GET /api/rides/nearby
-    API->>DB: Query active groups
-    DB-->>API: Available rides
-    API-->>App: Ride list
+Schema: [`database/init.sql`](database/init.sql)
 
-    Student->>App: Join selected group
-    App->>API: POST /api/rides/join
-    API->>DB: Begin transaction
-    API->>DB: Lock ride row and check capacity
-    API->>DB: Insert membership and update seats
-    API->>DB: Commit transaction
-    DB-->>API: Join result
-    API-->>App: Success or conflict response
+## API
+
+All endpoints except register, login and health require `Authorization: Bearer <JWT>`.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/auth/register` | Create account |
+| POST | `/api/auth/login` | Log in, returns JWT |
+| GET | `/api/auth/me` | Current user |
+| POST | `/api/auth/fcm-token` | Register device for push |
+| POST | `/api/rides/create` | Create a ride |
+| GET | `/api/rides/dashboard` | Home screen data (BFF) |
+| GET | `/api/rides/nearby` | Live rides visible to the user |
+| GET | `/api/rides/my-rides` | Hosted and joined rides |
+| GET | `/api/rides/history` | Completed rides |
+| GET | `/api/rides/stats` | Rides hosted / taken |
+| GET | `/api/rides/:id` | Ride details and members |
+| POST | `/api/rides/join` · `/leave` | Join or leave a ride |
+| POST | `/api/rides/end` · `/cancel` | Host completes or cancels |
+| POST | `/api/rides/:id/remove` · `/:id/block` | Host removes or blocks a passenger |
+| GET | `/api/messages/:rideId` | Chat history (members only) |
+| POST | `/api/messages/send` | Send a chat message |
+| GET | `/api/notifications` | List notifications |
+| PUT | `/api/notifications/read` | Mark all as read |
+| GET | `/health` | Health check (incl. Redis status) |
+
+## Project Structure
+
+```
+AutoMate/
+├── backend/                 Node.js + Express API
+│   ├── server.js            App entry: Redis → Socket.io → cron → listen
+│   └── src/
+│       ├── config/          PostgreSQL pool, Redis connection
+│       ├── controllers/     auth, rides, messages, notifications
+│       ├── routes/          REST routes
+│       ├── services/        shared cache, push notifications
+│       └── sockets/         Socket.io auth, rooms and events
+├── frontend/flutter_app/    Flutter app
+│   └── lib/
+│       ├── screens/         app screens
+│       ├── services/        API + push services
+│       ├── theme/           design system
+│       └── widgets/         shared UI components
+├── database/init.sql        Database schema
+└── docker-compose.yml       Local Postgres + Redis + backend
 ```
 
+## Running Locally
 
-**Database integrity considerations:**
+**Prerequisites:** Node.js 18+, Flutter 3.x, Docker.
 
-- Use foreign keys to maintain valid relationships between users, rides, and participants.
-- Add a unique constraint on `(ride_id, user_id)` to prevent duplicate membership.
-- Use database transactions and appropriate row locking to prevent seat overbooking.
-- Validate ride status and seat capacity before accepting membership changes.
-- Adapt the diagram to match the actual tables and columns in your migrations.
-
-### 3. Authentication Flow
-
-The backend validates credentials during login and protects private endpoints using authenticated requests.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Student
-    participant App as Flutter App
-    participant API as Express Backend
-    participant DB as PostgreSQL
-
-    User->>App: Enter email and password
-    App->>API: POST /api/auth/login
-    API->>DB: Find user by email
-    DB-->>API: User record and password hash
-    API->>API: Verify password
-    API->>API: Generate access token
-    API-->>App: Authentication response
-    App-->>User: Open dashboard
-
-    App->>API: GET /api/rides/dashboard
-    Note over App,API: Authorization: Bearer token
-    API->>API: Validate token and permissions
-    API->>DB: Fetch authorized dashboard data
-    DB-->>API: Dashboard results
-    API-->>App: JSON response
-```
-
-**Security requirements:**
-
-- Store password hashes, never plaintext passwords.
-- Keep signing secrets and database credentials outside source control.
-- Validate token expiration and signature.
-- Enforce ride-level authorization on protected operations.
-- Use HTTPS for production API traffic.
-
-### 4. Deployment Architecture
-
-This diagram represents the current hosting approach using Render, Supabase, and Docker-based local development.
-
-```mermaid
-flowchart TD
-    DEV["Developer"]
-    GIT["GitHub Repository"]
-    DOCKER["Docker and Docker Compose"]
-    RENDER["Render Web Service"]
-    API["Node.js and Express API"]
-    SUPABASE[("Supabase PostgreSQL")]
-    MOBILE["Flutter Android App"]
-
-    DEV -->|"Push changes"| GIT
-    GIT -->|"Deploy from repository"| RENDER
-    RENDER --> API
-    API -->|"SSL database connection"| SUPABASE
-    MOBILE -->|"HTTPS REST API"| API
-    DEV -->|"Local development"| DOCKER
-    DOCKER --> API
-```
-
-The diagram shows the intended deployment relationship. Actual deployment triggers, container configuration, and network settings depend on the repository and hosting configuration.
-
----
-
-##  Future Implementations (Roadmap)
-
-The following features are planned for upcoming releases to further enhance the platform:
-
-- **UPI Payment Integration:** Seamless in-app expense splitting and direct UPI payments between travel mates.
-- **AI-Powered Insights:** Smart suggestions for optimal travel routes, times, and dynamic matchmaking using the Gemini API.
-- **Real-Time Live Location Tracking:** In-app map integration to track incoming travel mates before pickup.
-
----
-
-##  Installation & Local Setup
-
-### Prerequisites
-
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (v3.0.0+)
-- [Node.js](https://nodejs.org/) (v18+)
-- [Docker and Docker Compose](https://www.docker.com/)
-
-### 1. Clone the Repository
+**Backend** — starts PostgreSQL, Redis and the API on `http://localhost:3000`:
 
 ```bash
 git clone https://github.com/Thilak-K2121/AutoMate.git
 cd AutoMate
-```
-
-### 2. Backend Setup
-
-```bash
-cd backend
-npm install
-```
-
-Configure your `.env` file with the required environment variables for your backend and Supabase connection.
-
-Start the local Docker environment using the command appropriate for your Compose installation:
-
-```bash
 docker compose up --build
 ```
 
-If your project uses the legacy Compose executable, use `docker-compose up --build` instead.
+To run the backend without Docker, create `backend/.env`:
 
-**Important:** Never commit `.env` files containing credentials, passwords, or signing secrets to GitHub.
+```env
+DATABASE_URL=postgres://...      # or DB_HOST / DB_USER / DB_PASSWORD / DB_NAME
+JWT_SECRET=change-me
+REDIS_URL=redis://localhost:6379 # optional — runs single-instance without it
+FIREBASE_SERVICE_ACCOUNT={...}   # optional — enables push notifications
+```
 
-### 3. Frontend Setup
+then `cd backend && npm install && npm run dev`.
 
-Open a terminal in the Flutter application directory:
+**App:**
 
 ```bash
-cd ../frontend/flutter_app
-flutter clean
+cd frontend/flutter_app
 flutter pub get
 flutter run
 ```
 
-Ensure that the backend API URL configured in the Flutter app is reachable from the device or emulator. Android emulators may require a different host address than a physical device.
+The API URL is set in `lib/services/api_service.dart` (`socketUrl`).
+
+> Never commit `.env` files, `serviceAccountKey.json` or `google-services.json`.
+
+## Documentation
+
+- [Interview preparation guide (PDF)](AutoMate_Interview_Preparation.pdf) — design, architecture diagrams, database, decisions, full API
+- [Redis & horizontal scaling guide](REDIS_HORIZONTAL_SCALING_GUIDE.md)
+- [System design guide](SYSTEM_DESIGN_AND_ARCHITECTURE_GUIDE.md)
+- [Engineering change log (Word)](AutoMate_Change_Log.docx)
+
+## Roadmap
+
+- Pickup-points map — rides shown as pins at their pickup locations
+- In-app UPI fare splitting
+- Live location sharing between group members before pickup
+- Rate limiting and idempotency keys
 
 ---
 
-##  Download the App
-
-The latest stable Android release (`AutoMate.apk`) is available for download.
-
-**[👉 Download AutoMate v1.0.0 / Latest Release](https://github.com/Thilak-K2121/AutoMate/releases/latest)**
-
-*Note: You may need to authorize installation from the relevant source in your Android device settings before installing the APK.*
-
----
-
-
-**Built for the BMSCE student community. 🛺**
+<p align="center">Built for the BMSCE student community 🛺</p>
